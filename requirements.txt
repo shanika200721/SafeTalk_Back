@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+pandas==2.2.2
+numpy==1.26.4
+scipy==1.14.1
+scikit-learn==1.5.2
+requests
+python-dotenv
+pydantic
+sqlalchemy
+python-jose
+passlib[argon2]
+argon2-cffi==23.1.0
