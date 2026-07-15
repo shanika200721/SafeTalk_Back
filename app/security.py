@@ -2,10 +2,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from app.core.config import settings
 
 # Password hashing - use argon2 instead of bcrypt to avoid 72-byte limit
 pwd_context = CryptContext(
@@ -14,9 +11,9 @@ pwd_context = CryptContext(
 )
 
 # JWT settings
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-1234567890abcdef")
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 def hash_password(password: str) -> str:
     """Hash a password using argon2 (no 72-byte limit)"""

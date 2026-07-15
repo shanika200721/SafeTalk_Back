@@ -1,0 +1,120 @@
+{
+  "started_at": "2026-07-14T09:31:24.957186",
+  "dry_run": true,
+  "sqlite_url": "sqlite:///./suicideprevention.db",
+  "postgres_url": "postgresql+psycopg2://suicide_app:***@localhost:5432/suicide_prevention",
+  "tables": [
+    {
+      "table": "users",
+      "source_rows": 19,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "model_registry",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "resources",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "profile_assessments",
+      "source_rows": 5,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "daily_checkins",
+      "source_rows": 286,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "dass21_assessments",
+      "source_rows": 14,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "assessments",
+      "source_rows": 10,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "assessment_history",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "alerts",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "chat_messages",
+      "source_rows": 16,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "counselor_sessions",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "safetalk_bot_messages",
+      "source_rows": 84,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "feature_snapshots",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "modality_predictions",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "risk_assessments",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "risk_assessment_inputs",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "alert_events",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    },
+    {
+      "table": "worker_jobs",
+      "source_rows": 0,
+      "inserted_rows": 0,
+      "status": "would_copy"
+    }
+  ],
+  "total_source_rows": 434,
+  "total_inserted_rows": 0,
+  "status": "dry_run_complete",
+  "completed_at": "2026-07-14T09:31:24.976873"
+}

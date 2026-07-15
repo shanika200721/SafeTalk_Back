@@ -1,0 +1,16 @@
+"""Speech emotion preprocessing foundation."""
+
+from app.ml.preprocessing.speech.constants import (
+    SPEECH_CORPUS_MAPPING_VERSION,
+    SPEECH_FEATURE_SCHEMA_VERSION,
+    SPEECH_LABEL_MAPPING_VERSION,
+    SPEECH_PREPROCESSING_VERSION,
+)
+
+__all__ = [
+    "SPEECH_CORPUS_MAPPING_VERSION",
+    "SPEECH_FEATURE_SCHEMA_VERSION",
+    "SPEECH_LABEL_MAPPING_VERSION",
+    "SPEECH_PREPROCESSING_VERSION",
+]
+
