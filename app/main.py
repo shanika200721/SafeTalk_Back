@@ -5,18 +5,16 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Import routes
 from app.routes import auth, assessments, checkin, counselor, resources, student, chat, bot
 from app.database import engine
+from app.core.config import settings
 from app.models.database_models import Base
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+if settings.is_sqlite and settings.ENVIRONMENT.lower() in {"development", "test"}:
+    # Temporary compatibility fallback while Alembic migrations are adopted.
+    Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -30,8 +28,8 @@ app = FastAPI(
 # Add CORS middleware - this MUST be added first before other middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_ORIGINS != ["*"],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],
     max_age=86400,
@@ -40,12 +38,20 @@ app.add_middleware(
 # Custom middleware to ensure CORS headers are always present
 @app.middleware("http")
 async def ensure_cors_headers(request, call_next):
+    request_origin = request.headers.get("origin")
+    if "*" in settings.CORS_ORIGINS:
+        allow_origin = "*"
+    elif request_origin in settings.CORS_ORIGINS:
+        allow_origin = request_origin
+    else:
+        allow_origin = settings.CORS_ORIGINS[0] if settings.CORS_ORIGINS else ""
+
     # Handle preflight OPTIONS requests
     if request.method == "OPTIONS":
         return Response(
             status_code=200,
             headers={
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": allow_origin,
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
                 "Access-Control-Allow-Headers": "*",
                 "Access-Control-Max-Age": "86400",
@@ -55,7 +61,7 @@ async def ensure_cors_headers(request, call_next):
     response = await call_next(request)
     
     # Add CORS headers to all responses
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Origin"] = allow_origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
     response.headers["Access-Control-Allow-Headers"] = "*"
     response.headers["Access-Control-Expose-Headers"] = "*"
@@ -81,7 +87,7 @@ def root():
         "message": "Suicide Prevention AI Agent API",
         "status": "running",
         "version": "1.0.0",
-        "environment": os.getenv("ENVIRONMENT", "development")
+        "environment": settings.ENVIRONMENT
     }
 
 @app.get("/api/health")
@@ -150,5 +156,5 @@ if __name__ == "__main__":
         "app.main:app",
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", 8000)),
-        reload=os.getenv("ENVIRONMENT", "development") == "development"
+        reload=settings.ENVIRONMENT == "development"
     )
