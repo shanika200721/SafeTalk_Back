@@ -5,6 +5,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.ipynb_checkpoints/
 
 # Virtual environments
 venv/
@@ -20,15 +21,41 @@ env/
 *.db
 *.sqlite
 *.sqlite3
+*.dump
+*.bak
+*.backup
 uploaded_audio/
+generated/
+../generated/preprocessing/
+../generated/temporary/
+../generated/audits/
 
 # Logs
 logs/
 *.log
+*.tmp
+*.temp
+
+# Local model artifacts
+../ml_models/**/*.pkl
+../ml_models/**/*.joblib
+../ml_models/**/*.pt
+../ml_models/**/*.pth
+../ml_models/**/*.onnx
+../ml_models/**/*.h5
+../ml_models/**/*.keras
+
+# Local raw datasets
+../Final Dataset/**
+!../Final Dataset/**/
+!../Final Dataset/**/link.txt
 
 # Node/package artifacts if created by tooling
 node_modules/
 dist/
+build/
+.vite/
+coverage/
 
 # Editor and OS files
 .vscode/

@@ -9,6 +9,9 @@ requests
 python-dotenv
 pydantic
 sqlalchemy
+alembic
+psycopg2-binary
 python-jose
 passlib[argon2]
 argon2-cffi==23.1.0
+pytest
