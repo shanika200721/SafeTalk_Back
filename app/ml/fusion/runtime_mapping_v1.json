@@ -68,16 +68,30 @@
       "limitations": ["Classifier output is not a calibrated clinical suicide probability.", "SafeTalk intent output is not used as text modality evidence."]
     },
     "speech": {
-      "accepted_output_types": [],
-      "mapping_version": "speech-future-policy-v1",
-      "justification": "Speech runtime preprocessing is not verified in Phase 4E.",
-      "limitations": ["Unavailable and excluded."]
+      "accepted_output_types": ["machine_learning"],
+      "source_output_type": "machine_learning",
+      "source_field": "probability",
+      "input_range": [0, 1],
+      "output_fusion_range": [0, 1],
+      "transformation": "identity",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "speech-runtime-mapping-v2",
+      "justification": "Phase 4K permits speech only after runtime verification, consent, freshness, and fusion eligibility pass.",
+      "limitations": ["Voice-emotion output is supporting screening evidence only, not suicidal intent."]
     },
     "face": {
-      "accepted_output_types": [],
-      "mapping_version": "face-future-policy-v1",
-      "justification": "Face runtime preprocessing is not verified in Phase 4E.",
-      "limitations": ["Unavailable and excluded."]
+      "accepted_output_types": ["machine_learning"],
+      "source_output_type": "machine_learning",
+      "source_field": "probability",
+      "input_range": [0, 1],
+      "output_fusion_range": [0, 1],
+      "transformation": "identity",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "face-runtime-mapping-v2",
+      "justification": "Phase 4K permits face only after runtime verification, explicit consent, freshness, reliability approval, and fusion eligibility pass.",
+      "limitations": ["Facial-emotion output is experimental support only unless separately approved; it is not a diagnosis."]
     }
   }
 }

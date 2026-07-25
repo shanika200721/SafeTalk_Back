@@ -14,12 +14,6 @@ from typing import Optional
 
 router = APIRouter(prefix="/api/checkin", tags=["Daily Check-In"])
 
-# Test endpoint to verify API is working
-@router.get("/test")
-async def test_endpoint():
-    """Test endpoint to verify checkin API is working"""
-    return {"status": "ok", "message": "Checkin API is working"}
-
 class DailyCheckInCreate(BaseModel):
     mood: int  # 1-5 scale
     mood_description: Optional[str] = None

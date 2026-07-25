@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -129,6 +129,10 @@ def _login_user(credentials: Login, db: Session, allowed_roles=None):
             detail=f"This login endpoint is not available for {user.role.value}s. Please use the correct login page.",
         )
 
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role.value},
@@ -188,15 +192,6 @@ def logout(current_user: User = Depends(get_current_user)):
 def verify_current_token(current_user: User = Depends(get_current_user)):
     """Verify the caller's bearer token without placing a token in the URL."""
     return {"valid": True, "user_id": current_user.id, "role": current_user.role.value}
-
-
-@router.get("/verify/{token}")
-def verify_token(token: str):
-    """Deprecated token-path verifier retained temporarily for compatibility."""
-    username = decode_token(token)
-    if username:
-        return {"valid": True, "deprecated": True}
-    return {"valid": False, "deprecated": True}
 
 
 @router.get("/users", response_model=list[UserLookup])

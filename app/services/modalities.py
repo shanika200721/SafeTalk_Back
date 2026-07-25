@@ -483,8 +483,8 @@ def verify_owned_chat_message(db: Session, message_id: int, user: User) -> ChatM
     message = db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
     if not message or message.message_type != "voice":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Voice source not found")
-    if message.sender_id != user.id and message.receiver_id != user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Voice source is not authorized")
+    if message.sender_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the student's own voice messages can be used as speech evidence")
     return message
 
 
@@ -528,12 +528,12 @@ def availability_contract() -> list[dict]:
         },
         {
             "modality": "speech",
-            "implemented": False,
+            "implemented": True,
             "runtime_model_active": False,
             "contract_available": True,
             "consent_required": "voice_processing",
             "source_requirements": ["authorized voice chat message id or secure upload reference"],
-            "limitations": ["Voice-message storage is not speech analysis.", "Runtime speech model is not active."],
+            "limitations": ["Voice-message delivery is separate from analysis.", "Runtime speech model is not active."],
         },
         {
             "modality": "face",

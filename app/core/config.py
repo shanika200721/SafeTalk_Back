@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() == "production"
 
+    def validate_production_safety(self) -> None:
+        if not self.is_production:
+            return
+        if self.SECRET_KEY == "change-me-in-your-local-env":
+            raise RuntimeError("SECRET_KEY must be set before running in production")
+        if "*" in self.CORS_ORIGINS:
+            raise RuntimeError("CORS_ORIGINS must be restricted before running in production")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

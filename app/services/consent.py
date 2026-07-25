@@ -11,11 +11,15 @@ CURRENT_POLICY_VERSION = "1.0"
 
 CONSENT_TYPES = {
     "profile_processing": "Profile information processing",
+    "profile_data_storage": "Profile assessment data storage",
+    "profile_model_processing": "Profile model processing",
     "dass21_processing": "DASS-21 questionnaire processing",
     "mood_processing": "Daily mood and check-in processing",
     "text_processing": "Automated text analysis",
     "voice_processing": "Voice-message upload, storage, and processing",
     "face_processing": "Facial data processing",
+    "facial_capture": "Facial image capture",
+    "facial_model_processing": "Facial model processing",
     "behavioral_processing": "Behavioral signal processing",
     "counselor_escalation": "Counselor escalation and review",
     "research_data_use": "Research data use",

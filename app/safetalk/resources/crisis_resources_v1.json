@@ -1,0 +1,10 @@
+{
+  "version": "crisis-resources-v1",
+  "review_status": "institutional_review_required",
+  "notes": "Sri Lankan campus and national contact details must be reviewed by qualified institutional staff before activation. Phase 4F does not call or message any service.",
+  "fallback": {
+    "label": "Contact local emergency services or go to the nearest emergency department.",
+    "emergency_designation": true
+  },
+  "resources": []
+}

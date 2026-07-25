@@ -19,7 +19,8 @@ ASSESSMENT_TYPE = "screening_support"
 LIMITATIONS = [
     "This result is a screening-support signal and not a clinical diagnosis.",
     "The fused score is model output only and is not a counselor decision.",
-    "Speech, face and behavioral evidence are not used in Phase 4E.",
+    "Speech and face evidence are included only when runtime verification, consent, freshness and fusion eligibility pass.",
+    "Behavioral evidence remains unavailable without a verified behavioral model.",
 ]
 
 ARTIFACT_KEY_BY_MODALITY = {
@@ -32,7 +33,7 @@ ARTIFACT_KEY_BY_MODALITY = {
 }
 MODALITY_BY_ARTIFACT_KEY = {value: key for key, value in ARTIFACT_KEY_BY_MODALITY.items()}
 CONFIGURED_MODALITIES = ["profile", "dass21", "mood", "text", "speech", "face"]
-RUNTIME_DISABLED_MODALITIES = {"speech", "face"}
+RUNTIME_DISABLED_MODALITIES = set()
 EXCLUDED_MODALITIES = {"behavioral"}
 
 
@@ -254,6 +255,18 @@ def _check_prediction(
         return None, ExcludedPrediction(prediction.modality, "modality_not_validated", prediction)
     if prediction.modality in RUNTIME_DISABLED_MODALITIES:
         return None, ExcludedPrediction(prediction.modality, "runtime_modality_unavailable", prediction)
+    if prediction.modality in {"speech", "face"}:
+        metadata = prediction.metadata_json or {}
+        registry = prediction.model_registry
+        verified_registry = bool(
+            registry
+            and registry.is_active
+            and registry.verification_status == "passed"
+            and registry.status == "active"
+        )
+        if not (metadata.get("fusion_eligible") is True or verified_registry):
+            reason = "insufficient_model_reliability" if prediction.modality == "face" else "runtime_model_not_verified_for_fusion"
+            return None, ExcludedPrediction(prediction.modality, reason, prediction)
     if prediction.status != "succeeded":
         return None, ExcludedPrediction(prediction.modality, f"status_{prediction.status}", prediction)
     if not prediction.is_available:
@@ -301,10 +314,6 @@ def _select_predictions(db: Session, user_id: int, now: datetime) -> tuple[dict[
     missing: list[str] = []
 
     for modality in CONFIGURED_MODALITIES:
-        if modality in RUNTIME_DISABLED_MODALITIES:
-            missing.append(modality)
-            excluded.append(_failure(modality, "runtime_modality_unavailable"))
-            continue
         candidates = (
             db.query(ModalityPrediction)
             .filter(ModalityPrediction.student_id == user_id, ModalityPrediction.modality == modality)

@@ -1,16 +1,29 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
-from typing import Optional, List, Dict
 from datetime import datetime
 import os
+from sqlalchemy.exc import SQLAlchemyError
 
 # Import routes
-from app.routes import auth, assessments, checkin, counselor, resources, student, chat, bot, consents, modalities, models, fusion
+from app.routes import auth, assessments, checkin, counselor, resources, student, chat, bot, consents, modalities, models, fusion, support, admin, wellness, profile_assessment
 from app.database import engine
 from app.core.config import settings
+from app.core.errors import (
+    http_exception_handler,
+    sqlalchemy_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
+from app.core.logging import configure_logging, get_logger
+from app.core.middleware import production_middleware
 from app.models.database_models import Base
+
+
+configure_logging()
+logger = get_logger("app.main")
+settings.validate_production_safety()
 
 if settings.is_sqlite and settings.ENVIRONMENT.lower() in {"development", "test"}:
     # Temporary compatibility fallback while Alembic migrations are adopted.
@@ -34,6 +47,8 @@ app.add_middleware(
     allow_headers=["*"],
     max_age=86400,
 )
+
+app.middleware("http")(production_middleware)
 
 # Custom middleware to ensure CORS headers are always present
 @app.middleware("http")
@@ -73,6 +88,7 @@ app.include_router(auth.router)
 app.include_router(assessments.router)
 app.include_router(checkin.router)
 app.include_router(counselor.router)
+app.include_router(wellness.router)
 app.include_router(student.router)
 app.include_router(resources.router)
 app.include_router(chat.router)
@@ -81,6 +97,9 @@ app.include_router(consents.router)
 app.include_router(modalities.router)
 app.include_router(models.router)
 app.include_router(fusion.router)
+app.include_router(support.router)
+app.include_router(admin.router)
+app.include_router(profile_assessment.router)
 
 # ==================== Root & Health Endpoints ====================
 
@@ -91,7 +110,8 @@ def root():
         "message": "Suicide Prevention AI Agent API",
         "status": "running",
         "version": "1.0.0",
-        "environment": settings.ENVIRONMENT
+        "environment": settings.ENVIRONMENT,
+        "documentation": "/api/docs",
     }
 
 @app.get("/api/health")
@@ -127,35 +147,10 @@ def api_info():
 
 # ==================== Error Handlers ====================
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """Custom HTTP exception handler"""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": exc.detail,
-            "status_code": exc.status_code,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    )
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    """General exception handler"""
-    # Log the actual error
-    print(f"ERROR: {type(exc).__name__}: {str(exc)}")
-    import traceback
-    traceback.print_exc()
-    
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal server error",
-            "status_code": 500,
-            "timestamp": datetime.utcnow().isoformat(),
-            "exception": str(exc)  # Include error details for debugging
-        }
-    )
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 if __name__ == "__main__":
     import uvicorn

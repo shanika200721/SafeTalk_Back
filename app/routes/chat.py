@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.database_models import User, ChatMessage
 from app.routes.auth import get_current_user
 from app.services.consent import require_active_consent
+from app.services.modalities import create_unavailable_prediction
 from pydantic import BaseModel
 from pathlib import Path
 from uuid import uuid4
@@ -42,6 +43,9 @@ class ChatMessageResponse(BaseModel):
     receiver_id: int
     message: str
     message_type: str
+    ai_analysis_requested: bool = False
+    ai_analysis_status: str = "not_requested"
+    ai_prediction_id: Optional[int] = None
     is_read: bool
     created_at: datetime
     sender_username: str
@@ -163,6 +167,9 @@ def send_message(
         receiver_id=chat_message.receiver_id,
         message=chat_message.message,
         message_type=chat_message.message_type,
+        ai_analysis_requested=chat_message.ai_analysis_requested,
+        ai_analysis_status=chat_message.ai_analysis_status,
+        ai_prediction_id=chat_message.ai_prediction_id,
         is_read=chat_message.is_read,
         created_at=chat_message.created_at,
         sender_username=current_user.username
@@ -273,6 +280,9 @@ def get_messages(
             receiver_id=msg.receiver_id,
             message=msg.message,
             message_type=msg.message_type,
+            ai_analysis_requested=msg.ai_analysis_requested,
+            ai_analysis_status=msg.ai_analysis_status,
+            ai_prediction_id=msg.ai_prediction_id,
             is_read=msg.is_read,
             created_at=msg.created_at,
             sender_username=msg.sender.username
@@ -349,12 +359,15 @@ def get_available_counselors(
 @router.post("/send-voice", response_model=ChatMessageResponse)
 def send_voice_message(
     receiver_id: int = Form(...),
+    analyze_emotional_tone: bool = Form(False),
     audio: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Send a voice message (audio file) to another user"""
     require_active_consent(db, current_user, "voice_processing", "uploading voice messages")
+    if analyze_emotional_tone and current_user.role.value != "student":
+        analyze_emotional_tone = False
     
     # Verify receiver exists
     receiver = db.query(User).filter(User.id == receiver_id).first()
@@ -419,10 +432,30 @@ def send_voice_message(
         sender_id=current_user.id,
         receiver_id=receiver_id,
         message=filename,
-        message_type='voice'
+        message_type='voice',
+        ai_analysis_requested=analyze_emotional_tone,
+        ai_analysis_status="pending" if analyze_emotional_tone else "not_requested",
+        metadata_json={
+            "student_notice": "When enabled, your voice message may be analyzed for emotional tone and included as supporting screening evidence.",
+            "delivery_independent_from_inference": True,
+        },
     )
     
     db.add(chat_message)
+    db.flush()
+    if analyze_emotional_tone:
+        prediction = create_unavailable_prediction(
+            db,
+            user=current_user,
+            modality="speech",
+            failure_code="MODEL_NOT_ACTIVE",
+            message="The speech runtime model is not active; voice message delivery was not blocked.",
+            source_type="chat_voice_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+        )
+        chat_message.ai_prediction_id = prediction.id
+        chat_message.ai_analysis_status = "unavailable"
     db.commit()
     db.refresh(chat_message)
     
@@ -432,6 +465,9 @@ def send_voice_message(
         receiver_id=chat_message.receiver_id,
         message=chat_message.message,
         message_type=chat_message.message_type,
+        ai_analysis_requested=chat_message.ai_analysis_requested,
+        ai_analysis_status=chat_message.ai_analysis_status,
+        ai_prediction_id=chat_message.ai_prediction_id,
         is_read=chat_message.is_read,
         created_at=chat_message.created_at,
         sender_username=current_user.username
