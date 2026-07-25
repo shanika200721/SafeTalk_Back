@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from datetime import datetime
@@ -6,11 +7,27 @@ from typing import List, Optional
 from app.database import get_db
 from app.models.database_models import User, ChatMessage
 from app.routes.auth import get_current_user
+from app.services.consent import require_active_consent
 from pydantic import BaseModel
-import os
-import shutil
+from pathlib import Path
+from uuid import uuid4
+import mimetypes
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
+
+UPLOAD_DIR = Path("uploaded_audio")
+MAX_AUDIO_BYTES = 5 * 1024 * 1024
+ALLOWED_AUDIO_EXTENSIONS = {".wav", ".webm", ".ogg", ".mp3", ".m4a"}
+ALLOWED_AUDIO_MIME_TYPES = {
+    "audio/wav",
+    "audio/wave",
+    "audio/x-wav",
+    "audio/webm",
+    "audio/ogg",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/x-m4a",
+}
 
 # ==================== Pydantic Models ====================
 
@@ -39,6 +56,76 @@ class ChatConversationResponse(BaseModel):
     last_message: Optional[str]
     last_message_time: Optional[datetime]
     unread_count: int
+
+def _is_chat_participant(message: ChatMessage, user: User) -> bool:
+    return message.sender_id == user.id or message.receiver_id == user.id
+
+def _safe_audio_path(filename: str) -> Path:
+    if Path(filename).name != filename:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid filename",
+        )
+    return UPLOAD_DIR / filename
+
+def _get_authorized_voice_message(
+    message_id: int,
+    current_user: User,
+    db: Session,
+) -> ChatMessage:
+    message = db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
+    if not message or message.message_type != "voice":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audio message not found",
+        )
+    if not _is_chat_participant(message, current_user) and current_user.role.value != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access this audio message",
+        )
+    return message
+
+def _audio_response(message: ChatMessage) -> FileResponse:
+    filename = Path(message.message or "").name
+    file_path = _safe_audio_path(filename)
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audio file not found",
+        )
+
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    return FileResponse(
+        str(file_path),
+        media_type=mime_type or "audio/wav",
+        filename=filename,
+        headers={
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "private, max-age=300",
+            "Content-Disposition": "inline",
+        },
+    )
+
+def _resolve_voice_message_by_filename(filename: str, db: Session) -> ChatMessage:
+    safe_name = _safe_audio_path(filename).name
+    candidates = [
+        safe_name,
+        f"uploaded_audio/{safe_name}",
+        f"uploaded_audio\\{safe_name}",
+    ]
+    message = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.message_type == "voice", ChatMessage.message.in_(candidates))
+        .order_by(ChatMessage.created_at.desc())
+        .first()
+    )
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audio message not found",
+        )
+    return message
 
 # ==================== Chat Endpoints ====================
 
@@ -267,6 +354,7 @@ def send_voice_message(
     db: Session = Depends(get_db)
 ):
     """Send a voice message (audio file) to another user"""
+    require_active_consent(db, current_user, "voice_processing", "uploading voice messages")
     
     # Verify receiver exists
     receiver = db.query(User).filter(User.id == receiver_id).first()
@@ -276,30 +364,61 @@ def send_voice_message(
             detail="Receiver not found"
         )
     
-    # Create audio directory if not exists
-    audio_dir = "uploaded_audio"
-    os.makedirs(audio_dir, exist_ok=True)
-    
-    # Generate filename
-    timestamp = datetime.utcnow().timestamp()
-    filename = f"voice_{current_user.id}_{receiver_id}_{timestamp}.wav"
-    file_path = os.path.join(audio_dir, filename)
-    
-    # Save audio file
+    original_name = audio.filename or ""
+    extension = Path(original_name).suffix.lower()
+    if extension not in ALLOWED_AUDIO_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_AUDIO_EXTENSION", "message": "Unsupported audio file extension"},
+        )
+
+    if audio.content_type not in ALLOWED_AUDIO_MIME_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_AUDIO_MIME_TYPE", "message": "Unsupported audio file type"},
+        )
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"voice_{uuid4().hex}{extension}"
+    file_path = _safe_audio_path(filename)
+
+    total_bytes = 0
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
-    except Exception as e:
+        with file_path.open("wb") as buffer:
+            while True:
+                chunk = audio.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if total_bytes > MAX_AUDIO_BYTES:
+                    buffer.close()
+                    file_path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail={"code": "AUDIO_TOO_LARGE", "message": "Audio file exceeds the maximum allowed size"},
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        raise
+    except Exception:
+        file_path.unlink(missing_ok=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save audio file: {str(e)}"
+            detail="Failed to save audio file",
+        )
+
+    if total_bytes == 0:
+        file_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "EMPTY_AUDIO_FILE", "message": "Audio file is empty"},
         )
     
     # Create message record
     chat_message = ChatMessage(
         sender_id=current_user.id,
         receiver_id=receiver_id,
-        message=file_path,  # Store file path in message field
+        message=filename,
         message_type='voice'
     )
     
@@ -318,44 +437,27 @@ def send_voice_message(
         sender_username=current_user.username
     )
 
+@router.get("/messages/{message_id}/audio")
+def get_message_audio(
+    message_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Stream a voice message after participant authorization."""
+    message = _get_authorized_voice_message(message_id, current_user, db)
+    return _audio_response(message)
+
 @router.get("/audio/{filename}")
 def get_audio(
     filename: str,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Stream audio file for voice message - no auth required for HTML5 audio element"""
-    import mimetypes
-    from fastapi.responses import FileResponse
-    
-    # Validate filename to prevent directory traversal
-    if ".." in filename or "/" in filename or "\\" in filename:
+    """Deprecated filename route; still requires participant authorization."""
+    message = _resolve_voice_message_by_filename(filename, db)
+    if not _is_chat_participant(message, current_user) and current_user.role.value != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid filename"
+            detail="You are not authorized to access this audio message",
         )
-    
-    file_path = f"uploaded_audio/{filename}"
-    
-    # Check if file exists
-    if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Audio file not found"
-        )
-    
-    # Determine MIME type
-    mime_type, _ = mimetypes.guess_type(file_path)
-    if not mime_type:
-        mime_type = "audio/wav"
-    
-    # Return file with proper headers for HTML5 audio element
-    return FileResponse(
-        file_path,
-        media_type=mime_type,
-        filename=filename,
-        headers={
-            "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=3600",
-            "Content-Disposition": "inline"
-        }
-    )
+    return _audio_response(message)

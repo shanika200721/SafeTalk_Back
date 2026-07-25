@@ -49,6 +49,7 @@ class User(Base):
     feature_snapshots = relationship("FeatureSnapshot", back_populates="student")
     modality_predictions = relationship("ModalityPrediction", back_populates="student")
     risk_assessments = relationship("RiskAssessment", back_populates="student")
+    consent_records = relationship("ConsentRecord", back_populates="user")
 
 class ProfileAssessment(Base):
     __tablename__ = "profile_assessments"
@@ -131,6 +132,15 @@ class DASS21Assessment(Base):
     depression_severity = Column(String)  # Normal, Mild, Moderate, Severe, Extremely Severe
     anxiety_severity = Column(String)
     stress_severity = Column(String)
+
+    questionnaire_version = Column(String, nullable=True)
+    item_mapping_version = Column(String, nullable=True)
+    scoring_version = Column(String, nullable=True)
+    score_multiplier = Column(Float, nullable=True)
+    completed_item_count = Column(Integer, nullable=True)
+    is_complete = Column(Boolean, nullable=True)
+    scored_at = Column(DateTime, nullable=True)
+    consent_policy_version = Column(String, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -285,6 +295,13 @@ class ModelRegistry(Base):
             sqlite_where=text("is_active = 1"),
         ),
         Index("ix_model_registry_modality", "modality"),
+        Index(
+            "uq_model_registry_one_active_modality",
+            "modality",
+            unique=True,
+            postgresql_where=text("is_active = true"),
+            sqlite_where=text("is_active = 1"),
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -298,6 +315,28 @@ class ModelRegistry(Base):
     feature_schema_version = Column(String, nullable=True)
     metrics_json = Column(JSON, nullable=True)
     thresholds_json = Column(JSON, nullable=True)
+    artifact_sha256 = Column(String, nullable=True)
+    serializer = Column(String, nullable=True)
+    framework_version = Column(String, nullable=True)
+    preprocessing_version = Column(String, nullable=True)
+    label_mapping_version = Column(String, nullable=True)
+    training_dataset_identifier = Column(String, nullable=True)
+    training_split_identifier = Column(String, nullable=True)
+    evaluation_report_identifier = Column(String, nullable=True)
+    model_card_path = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="discovered", index=True)
+    verification_status = Column(String, nullable=True)
+    verification_checked_at = Column(DateTime, nullable=True)
+    verification_failure_code = Column(String, nullable=True)
+    verification_message = Column(Text, nullable=True)
+    verification_json = Column(JSON, nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    approved_by = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    limitations_json = Column(JSON, nullable=True)
+    intended_use = Column(Text, nullable=True)
+    prohibited_use = Column(Text, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=False, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -312,18 +351,26 @@ class FeatureSnapshot(Base):
         Index("ix_feature_snapshots_student_created", "student_id", "created_at"),
         Index("ix_feature_snapshots_modality", "modality"),
         Index("ix_feature_snapshots_source", "source_type", "source_record_id"),
+        Index("ix_feature_snapshots_student_modality_source", "student_id", "modality", "source_type", "source_record_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     source_type = Column(String, nullable=False)
-    source_record_id = Column(Integer, nullable=False)
+    source_record_id = Column(Integer, nullable=True)
     modality = Column(String, nullable=False)
     features_json = Column(JSON, nullable=False)
     preprocessing_version = Column(String, nullable=True)
+    source_timestamp = Column(DateTime, nullable=True)
+    feature_schema_version = Column(String, nullable=True)
+    consent_policy_version = Column(String, nullable=True)
+    data_quality_status = Column(String, nullable=True)
+    data_quality_flags = Column(JSON, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     student = relationship("User", back_populates="feature_snapshots")
+    predictions = relationship("ModalityPrediction", back_populates="feature_snapshot")
 
 
 class ModalityPrediction(Base):
@@ -332,26 +379,61 @@ class ModalityPrediction(Base):
         CheckConstraint("probability >= 0 AND probability <= 1", name="ck_modality_predictions_probability_0_1"),
         CheckConstraint("score_0_100 >= 0 AND score_0_100 <= 100", name="ck_modality_predictions_score_0_100"),
         CheckConstraint("confidence >= 0 AND confidence <= 1", name="ck_modality_predictions_confidence_0_1"),
+        CheckConstraint(
+            "modality IN ('profile', 'dass21', 'mood', 'text', 'speech', 'face', 'behavioral')",
+            name="ck_modality_predictions_canonical_modality",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'succeeded', 'failed', 'unavailable', 'rejected', 'stale')",
+            name="ck_modality_predictions_status",
+        ),
+        CheckConstraint(
+            "output_type IN ('rule_based', 'heuristic', 'machine_learning', 'manual', 'externally_supplied')",
+            name="ck_modality_predictions_output_type",
+        ),
         Index("ix_modality_predictions_student_created", "student_id", "created_at"),
         Index("ix_modality_predictions_modality", "modality"),
         Index("ix_modality_predictions_source", "source_type", "source_record_id"),
+        Index("ix_modality_predictions_student_modality_status", "student_id", "modality", "status"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     modality = Column(String, nullable=False)
     source_type = Column(String, nullable=False)
-    source_record_id = Column(Integer, nullable=False)
-    model_registry_id = Column(Integer, ForeignKey("model_registry.id", ondelete="RESTRICT"), nullable=False)
-    predicted_class = Column(String, nullable=False)
-    probability = Column(Float, nullable=False)
-    score_0_100 = Column(Float, nullable=False)
-    confidence = Column(Float, nullable=False)
+    source_record_id = Column(Integer, nullable=True)
+    feature_snapshot_id = Column(Integer, ForeignKey("feature_snapshots.id"), nullable=True)
+    model_registry_id = Column(Integer, ForeignKey("model_registry.id", ondelete="RESTRICT"), nullable=True)
+    predicted_class = Column(String, nullable=True)
+    probability = Column(Float, nullable=True)
+    score_0_100 = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+    status = Column(String, nullable=False, default="succeeded")
+    is_available = Column(Boolean, nullable=False, default=True)
+    failure_code = Column(String, nullable=True)
+    failure_message_safe = Column(Text, nullable=True)
+    source_timestamp = Column(DateTime, nullable=True)
+    generated_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    valid_until = Column(DateTime, nullable=True)
+    model_name = Column(String, nullable=True)
+    model_version = Column(String, nullable=True)
+    preprocessing_version = Column(String, nullable=True)
+    feature_schema_version = Column(String, nullable=True)
+    output_type = Column(String, nullable=False, default="machine_learning")
+    label = Column(String, nullable=True)
+    raw_output_json = Column(JSON, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    consent_policy_version = Column(String, nullable=True)
+    evidence_available = Column(Boolean, nullable=False, default=True)
+    clinical_use_boundary = Column(String, nullable=False, default="screening_support_only")
+    data_quality_status = Column(String, nullable=True)
+    data_quality_flags = Column(JSON, nullable=True)
     explanation_json = Column(JSON, nullable=True)
     processing_time_ms = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     student = relationship("User", back_populates="modality_predictions")
+    feature_snapshot = relationship("FeatureSnapshot", back_populates="predictions")
     model_registry = relationship("ModelRegistry", back_populates="predictions")
     risk_inputs = relationship("RiskAssessmentInput", back_populates="modality_prediction")
 
@@ -370,10 +452,38 @@ class RiskAssessment(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     fusion_model_id = Column(Integer, ForeignKey("model_registry.id", ondelete="RESTRICT"), nullable=True)
-    final_probability = Column(Float, nullable=False)
-    final_score = Column(Float, nullable=False)
-    risk_level = Column(String, nullable=False)
-    confidence = Column(Float, nullable=False)
+    final_probability = Column(Float, nullable=True)
+    final_score = Column(Float, nullable=True)
+    risk_level = Column(String, nullable=True)
+    confidence = Column(Float, nullable=True)
+    status = Column(String, nullable=False, default="completed")
+    assessment_type = Column(String, nullable=False, default="screening_support")
+    model_score = Column(Float, nullable=True)
+    model_risk_level = Column(String, nullable=True)
+    fusion_config_version = Column(String, nullable=True)
+    fusion_config_hash = Column(String, nullable=True)
+    threshold_version = Column(String, nullable=True)
+    mapping_version = Column(String, nullable=True)
+    staleness_policy_version = Column(String, nullable=True)
+    coverage_policy_version = Column(String, nullable=True)
+    configured_modalities = Column(JSON, nullable=True)
+    available_modalities = Column(JSON, nullable=True)
+    used_modalities = Column(JSON, nullable=True)
+    missing_modalities = Column(JSON, nullable=True)
+    excluded_modalities = Column(JSON, nullable=True)
+    evidence_coverage = Column(Float, nullable=True)
+    coverage_category = Column(String, nullable=True)
+    effective_weights = Column(JSON, nullable=True)
+    latest_source_timestamp = Column(DateTime, nullable=True)
+    oldest_source_timestamp = Column(DateTime, nullable=True)
+    evidence_window_json = Column(JSON, nullable=True)
+    limitations_json = Column(JSON, nullable=True)
+    screening_only = Column(Boolean, default=True, nullable=False)
+    model_output_only = Column(Boolean, default=True, nullable=False)
+    human_review_status = Column(String, nullable=False, default="not_requested")
+    counselor_decision = Column(JSON, nullable=True)
+    counselor_override = Column(JSON, nullable=True)
+    alert_created = Column(Boolean, default=False, nullable=False)
     data_completeness = Column(JSON, nullable=True)
     safety_override = Column(Boolean, default=False, nullable=False)
     safety_override_reason = Column(Text, nullable=True)
@@ -395,7 +505,18 @@ class RiskAssessmentInput(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     risk_assessment_id = Column(Integer, ForeignKey("risk_assessments.id"), nullable=False)
-    modality_prediction_id = Column(Integer, ForeignKey("modality_predictions.id"), nullable=False)
+    modality_prediction_id = Column(Integer, ForeignKey("modality_predictions.id"), nullable=True)
+    modality = Column(String, nullable=True)
+    source_score = Column(Float, nullable=True)
+    mapped_score = Column(Float, nullable=True)
+    base_weight = Column(Float, nullable=True)
+    effective_weight = Column(Float, nullable=True)
+    included = Column(Boolean, default=True, nullable=False)
+    exclusion_reason = Column(Text, nullable=True)
+    source_timestamp = Column(DateTime, nullable=True)
+    prediction_age_seconds = Column(Float, nullable=True)
+    mapping_version = Column(String, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
 
     risk_assessment = relationship("RiskAssessment", back_populates="inputs")
     modality_prediction = relationship("ModalityPrediction", back_populates="risk_inputs")
@@ -438,3 +559,31 @@ class WorkerJob(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
+
+
+class ConsentRecord(Base):
+    __tablename__ = "consent_records"
+    __table_args__ = (
+        CheckConstraint(
+            "consent_type IN ('profile_processing', 'dass21_processing', 'mood_processing', "
+            "'text_processing', 'voice_processing', 'face_processing', 'behavioral_processing', "
+            "'counselor_escalation', 'research_data_use')",
+            name="ck_consent_records_known_type",
+        ),
+        Index("ix_consent_records_user_type_created", "user_id", "consent_type", "created_at"),
+        Index("ix_consent_records_type", "consent_type"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    consent_type = Column(String, nullable=False)
+    is_granted = Column(Boolean, nullable=False, default=False)
+    policy_version = Column(String, nullable=False)
+    granted_at = Column(DateTime, nullable=True)
+    withdrawn_at = Column(DateTime, nullable=True)
+    source = Column(String, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="consent_records")

@@ -242,14 +242,14 @@ def get_student_stats(
     # Check-in streak
     recent_checkins = db.query(DailyCheckIn).filter(
         DailyCheckIn.user_id == current_user.id
-    ).order_by(DailyCheckIn.check_in_date.desc()).limit(30).all()
+    ).order_by(DailyCheckIn.created_at.desc()).limit(30).all()
     
     streak = 0
     today = datetime.now().date()
     
     for i, checkin in enumerate(recent_checkins):
         expected_date = today - timedelta(days=i)
-        if checkin.check_in_date == expected_date:
+        if checkin.created_at.date() == expected_date:
             streak += 1
         else:
             break

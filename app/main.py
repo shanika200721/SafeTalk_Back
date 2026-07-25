@@ -7,7 +7,7 @@ from datetime import datetime
 import os
 
 # Import routes
-from app.routes import auth, assessments, checkin, counselor, resources, student, chat, bot
+from app.routes import auth, assessments, checkin, counselor, resources, student, chat, bot, consents, modalities, models, fusion
 from app.database import engine
 from app.core.config import settings
 from app.models.database_models import Base
@@ -77,6 +77,10 @@ app.include_router(student.router)
 app.include_router(resources.router)
 app.include_router(chat.router)
 app.include_router(bot.router)
+app.include_router(consents.router)
+app.include_router(modalities.router)
+app.include_router(models.router)
+app.include_router(fusion.router)
 
 # ==================== Root & Health Endpoints ====================
 
@@ -113,7 +117,10 @@ def api_info():
             "student": "/api/student/*",
             "counselor": "/api/counselor/*",
             "chat": "/api/chat/*",
-            "resources": "/api/resources/*"
+            "resources": "/api/resources/*",
+            "modalities": "/api/modalities/*",
+            "models": "/api/models/*",
+            "fusion": "/api/fusion/*",
         },
         "documentation": "/api/docs"
     }

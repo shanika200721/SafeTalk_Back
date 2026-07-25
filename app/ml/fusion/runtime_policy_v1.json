@@ -1,0 +1,31 @@
+{
+  "coverage_policy_version": "coverage-v1",
+  "staleness_policy_version": "staleness-v1",
+  "minimum_evidence_policy": {
+    "minimum_modality_count": 2,
+    "minimum_base_weight_coverage": 0.35,
+    "rationale": "Controlled fusion is multimodal screening support; one weak modality must not appear equivalent to a multimodal assessment."
+  },
+  "coverage_categories": {
+    "insufficient": { "max_exclusive": 0.35 },
+    "limited": { "min_inclusive": 0.35, "max_exclusive": 0.5 },
+    "moderate": { "min_inclusive": 0.5, "max_exclusive": 0.9 },
+    "strong": { "min_inclusive": 0.9 }
+  },
+  "staleness_windows_days": {
+    "profile": 180,
+    "dass21": 30,
+    "mood": 3,
+    "text": 7,
+    "speech": 1,
+    "face": 1
+  },
+  "staleness_rationale": {
+    "profile": "Profile factors change slowly and can remain useful for longer screening context.",
+    "dass21": "Questionnaire results are treated as recent screening context for a defined short-term period.",
+    "mood": "Daily check-in signals are short-lived and must be recent.",
+    "text": "Submitted text analysis is contextual and should be recent.",
+    "speech": "Future policy only; modality is unavailable in Phase 4E.",
+    "face": "Future policy only; modality is unavailable in Phase 4E."
+  }
+}

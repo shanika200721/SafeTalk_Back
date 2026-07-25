@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -14,8 +15,8 @@ router = APIRouter(prefix="/api/counselor", tags=["Counselor"])
 
 class CounselorSessionCreate(BaseModel):
     user_id: int
-    session_type: str
-    risk_level_at_escalation: str
+    session_type: str = "manual"
+    risk_level_at_escalation: str = "UNKNOWN"
     counselor_notes: Optional[str] = None
 
 class CounselorSessionUpdate(BaseModel):
@@ -34,6 +35,34 @@ def verify_counselor(current_user: User = Depends(get_current_user)):
             detail="Only counselors and admins can access this endpoint"
         )
     return current_user
+
+def authorize_counselor_student_access(
+    current_user: User,
+    student_id: int,
+    db: Session,
+    allow_role_wide_phase4b: bool = True,
+) -> None:
+    """
+    Phase 4B scope hook for counselor-to-student access.
+
+    A complete assignment table is deferred. Existing dedicated counselor routes
+    keep role-wide access through this helper so later assignment checks can be
+    inserted consistently without changing every endpoint signature again.
+    """
+    student = db.query(User).filter(User.id == student_id, User.role == UserRole.STUDENT).first()
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student not found"
+        )
+    if current_user.role == UserRole.ADMIN:
+        return
+    if allow_role_wide_phase4b:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Counselor assignment is required for this student"
+    )
 
 # ==================== Alerts ====================
 
@@ -151,6 +180,7 @@ def get_student_dashboard(
     db: Session = Depends(get_db)
 ):
     """Get comprehensive dashboard for a student"""
+    authorize_counselor_student_access(current_user, user_id, db)
     
     # Get user
     user = db.query(User).filter(User.id == user_id).first()
@@ -174,7 +204,7 @@ def get_student_dashboard(
     today = datetime.utcnow().date()
     checkin = db.query(DailyCheckIn).filter(
         (DailyCheckIn.user_id == user_id) &
-        (db.func.date(DailyCheckIn.created_at) == today)
+        (func.date(DailyCheckIn.created_at) == today)
     ).first()
     
     # Get latest risk assessment
@@ -242,6 +272,7 @@ def create_counselor_session(
     db: Session = Depends(get_db)
 ):
     """Create a new counselor session"""
+    authorize_counselor_student_access(current_user, session_data.user_id, db)
     
     # Verify student exists
     user = db.query(User).filter(User.id == session_data.user_id).first()
@@ -354,6 +385,7 @@ def get_user_sessions(
     db: Session = Depends(get_db)
 ):
     """Get all sessions for a user"""
+    authorize_counselor_student_access(current_user, user_id, db)
     
     sessions = db.query(CounselorSession).filter(
         CounselorSession.user_id == user_id

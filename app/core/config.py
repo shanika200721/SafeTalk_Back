@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     UPLOAD_ROOT: str = Field("./uploaded_audio", env="UPLOAD_ROOT")
     REDIS_URL: str = Field("redis://localhost:6379/0", env="REDIS_URL")
     ENVIRONMENT: str = Field("development", env="ENVIRONMENT")
+    LEGACY_RISK_ASSESSMENT_ENABLED: bool = Field(False, env="LEGACY_RISK_ASSESSMENT_ENABLED")
 
     @validator("CORS_ORIGINS", pre=True)
     def parse_cors_origins(cls, value):
