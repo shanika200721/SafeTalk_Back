@@ -281,6 +281,20 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         failure_reason = failure_reason or "insufficient_model_reliability"
     if model.modality == "speech" and not activation_eligible:
         failure_reason = failure_reason or "runtime_preprocessor_not_approved"
+    if not artifact_available:
+        health_state = "missing_artifact"
+    elif failure_reason in {"PREPROCESSOR_MISSING", "runtime_preprocessor_not_approved"}:
+        health_state = "incompatible_preprocessing"
+    elif failure_reason == "LABEL_MAPPING_MISSING":
+        health_state = "missing_label_mapping"
+    elif failure_reason == "SMOKE_TEST_FAILED":
+        health_state = "smoke_test_failed"
+    elif model.is_active and activation_eligible:
+        health_state = "verified_active"
+    elif model.verification_status == "passed":
+        health_state = "verified_inactive"
+    else:
+        health_state = "inactive"
     return {
         "modality": modality,
         "model_id": model.id,
@@ -301,7 +315,7 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         "predictions_last_24h": int(predictions_last_24h or 0),
         "average_inference_duration": None,
         "fusion_eligibility": model.modality in {"profile", "text", "speech", "face"} and model.is_active and activation_eligible,
-        "health_state": "active" if model.is_active and activation_eligible else ("verified_inactive" if model.verification_status == "passed" else "inactive"),
+        "health_state": health_state,
         "limitations": model.limitations_json or [],
     }
 

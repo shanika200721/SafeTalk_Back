@@ -11,6 +11,7 @@ from app.db.base import Base
 from app.main import app
 from app.models.database_models import (
     ChatMessage,
+    CounselorAssignment,
     DASS21Assessment,
     DailyCheckIn,
     FeatureSnapshot,
@@ -104,6 +105,18 @@ def grant_consent(client, headers, consent_type):
 def grant_modalities(client, headers, *consent_types):
     for consent_type in consent_types:
         grant_consent(client, headers, consent_type)
+
+
+def assign(db_session, student, counselor):
+    assignment = CounselorAssignment(
+        assignment_id=f"asg-{student.id}-{counselor.id}",
+        student_id=student.id,
+        counselor_id=counselor.id,
+        active=True,
+    )
+    db_session.add(assignment)
+    db_session.commit()
+    return assignment
 
 
 def audio_file():
@@ -282,7 +295,8 @@ def test_mood_prediction_references_owned_checkin_and_blocks_other_user(client, 
 
 def test_text_prediction_is_unavailable_requires_consent_and_does_not_return_raw_text(client, db_session):
     sender = create_user(db_session, "text-sender")
-    receiver = create_user(db_session, "text-receiver")
+    receiver = create_user(db_session, "text-receiver", UserRole.COUNSELOR)
+    assign(db_session, sender, receiver)
     headers = auth_headers(client, sender.username)
 
     chat = client.post(
@@ -311,8 +325,9 @@ def test_text_prediction_is_unavailable_requires_consent_and_does_not_return_raw
 
 def test_speech_unavailable_blocks_unauthorized_audio_and_never_returns_raw_path(client, db_session):
     sender = create_user(db_session, "speech-sender")
-    receiver = create_user(db_session, "speech-receiver")
+    receiver = create_user(db_session, "speech-receiver", UserRole.COUNSELOR)
     unrelated = create_user(db_session, "speech-unrelated")
+    assign(db_session, sender, receiver)
     sender_headers = auth_headers(client, sender.username)
     unrelated_headers = auth_headers(client, unrelated.username)
     grant_modalities(client, sender_headers, "voice_processing")

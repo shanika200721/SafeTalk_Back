@@ -484,7 +484,10 @@ class ChatMessage(Base):
     ai_prediction_id = Column(Integer, ForeignKey("modality_predictions.id"), nullable=True)
     metadata_json = Column(JSON, nullable=True)
     is_read = Column(Boolean, default=False)
+    sent_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
     read_at = Column(DateTime, nullable=True)
+    delivery_status = Column(String, default="sent", nullable=False)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

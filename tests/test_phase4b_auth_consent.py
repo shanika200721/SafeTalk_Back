@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 from app.database import get_db
 from app.main import app
 from app.db.base import Base
-from app.models.database_models import ConsentRecord, User, UserRole
+from app.models.database_models import ConsentRecord, CounselorAssignment, User, UserRole
 from app.routes import chat as chat_routes
 from app.security import hash_password
 
@@ -88,6 +88,18 @@ def grant_consent(client, headers, consent_type):
     )
     assert response.status_code == 200
     return response
+
+
+def assign(db_session, student, counselor):
+    assignment = CounselorAssignment(
+        assignment_id=f"asg-{student.id}-{counselor.id}",
+        student_id=student.id,
+        counselor_id=counselor.id,
+        active=True,
+    )
+    db_session.add(assignment)
+    db_session.commit()
+    return assignment
 
 
 def audio_file(content=b"RIFF0000WAVEdata"):
@@ -199,33 +211,38 @@ def test_consent_is_current_user_only(client, db_session):
 
 def test_voice_upload_requires_consent_then_sender_and_receiver_can_stream(client, db_session):
     sender = create_user(db_session, "voice-sender")
-    receiver = create_user(db_session, "voice-receiver")
+    receiver = create_user(db_session, "voice-receiver", UserRole.COUNSELOR)
     unrelated = create_user(db_session, "voice-unrelated")
+    admin = create_user(db_session, "voice-admin", UserRole.ADMIN)
+    assign(db_session, sender, receiver)
     sender_headers = auth_headers(client, sender.username)
     receiver_headers = auth_headers(client, receiver.username)
     unrelated_headers = auth_headers(client, unrelated.username)
+    admin_headers = auth_headers(client, admin.username)
 
-    blocked = client.post(
+    uploaded_without_analysis = client.post(
         "/api/chat/send-voice",
         data={"receiver_id": str(receiver.id)},
         files=audio_file(),
         headers=sender_headers,
     )
-    assert blocked.status_code == 403
-    assert blocked.json()["error"]["code"] == "CONSENT_REQUIRED"
+    assert uploaded_without_analysis.status_code == 200
+    assert uploaded_without_analysis.json()["ai_analysis_status"] == "not_requested"
 
     grant_consent(client, sender_headers, "voice_processing")
     uploaded = client.post(
         "/api/chat/send-voice",
-        data={"receiver_id": str(receiver.id)},
+        data={"receiver_id": str(receiver.id), "analyze_emotional_tone": "true"},
         files=audio_file(),
         headers=sender_headers,
     )
     assert uploaded.status_code == 200
+    assert uploaded.json()["ai_analysis_status"] == "unavailable"
     message_id = uploaded.json()["id"]
 
     assert client.get(f"/api/chat/messages/{message_id}/audio").status_code == 401
     assert client.get(f"/api/chat/messages/{message_id}/audio", headers=unrelated_headers).status_code == 403
+    assert client.get(f"/api/chat/messages/{message_id}/audio", headers=admin_headers).status_code == 403
     assert client.get(f"/api/chat/messages/{message_id}/audio", headers=sender_headers).status_code == 200
     assert client.get(f"/api/chat/messages/{message_id}/audio", headers=receiver_headers).status_code == 200
 
@@ -240,7 +257,8 @@ def test_audio_filename_compat_route_rejects_path_traversal(client, db_session):
 
 def test_voice_upload_rejects_invalid_mime_and_oversize(client, db_session):
     sender = create_user(db_session, "voice-validate-sender")
-    receiver = create_user(db_session, "voice-validate-receiver")
+    receiver = create_user(db_session, "voice-validate-receiver", UserRole.COUNSELOR)
+    assign(db_session, sender, receiver)
     headers = auth_headers(client, sender.username)
     grant_consent(client, headers, "voice_processing")
 

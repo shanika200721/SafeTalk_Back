@@ -13,6 +13,7 @@ from app.main import app
 from app.models.database_models import (
     ChatMessage,
     ConsentRecord,
+    CounselorAssignment,
     JournalEntry,
     ModalityPrediction,
     SafeTalkBotMessage,
@@ -100,6 +101,18 @@ def grant_consent(db_session, user, consent_type):
     return record
 
 
+def assign(db_session, student, counselor):
+    assignment = CounselorAssignment(
+        assignment_id=f"asg-{student.id}-{counselor.id}",
+        student_id=student.id,
+        counselor_id=counselor.id,
+        active=True,
+    )
+    db_session.add(assignment)
+    db_session.commit()
+    return assignment
+
+
 def test_safetalk_conversation_reopens_and_continues_without_mixing(client, db_session):
     student = create_user(db_session, "phase4k-talk")
     other = create_user(db_session, "phase4k-other")
@@ -148,16 +161,18 @@ def test_safetalk_response_quality_variants_and_crisis_priority():
 def test_voice_delivery_is_separate_from_analysis_and_counselor_voice_excluded(client, db_session):
     student = create_user(db_session, "voice-student")
     counselor = create_user(db_session, "voice-counselor", UserRole.COUNSELOR)
+    assign(db_session, student, counselor)
     student_headers = auth_headers(client, student.username)
     counselor_headers = auth_headers(client, counselor.username)
 
-    blocked = client.post(
+    delivered_without_analysis = client.post(
         "/api/chat/send-voice",
         data={"receiver_id": str(counselor.id), "analyze_emotional_tone": "false"},
         files={"audio": ("note.wav", BytesIO(b"RIFF....WAVEfmt "), "audio/wav")},
         headers=student_headers,
     )
-    assert blocked.status_code == 403
+    assert delivered_without_analysis.status_code == 200
+    assert delivered_without_analysis.json()["ai_analysis_status"] == "not_requested"
 
     grant_consent(db_session, student, "voice_processing")
     no_analysis = client.post(
