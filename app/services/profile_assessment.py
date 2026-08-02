@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import func
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.ml.runtime.base import RuntimeInferenceError, RuntimeModelUnavailable
@@ -522,6 +523,8 @@ CATEGORY_LABELS = {
 
 
 QUESTION_BY_ID = {question["question_id"]: question for question in QUESTIONS}
+ASSESSMENT_TERMINAL_STATUSES = {"submitted", "completed"}
+ASSESSMENT_SOURCE = "phase4l_student_profile_assessment"
 
 
 def questionnaire_contract() -> dict[str, Any]:
@@ -555,10 +558,10 @@ def _reject_html(value: Any, question_id: str) -> None:
 
 def validate_responses(responses: dict[str, Any], *, require_required: bool) -> dict[str, Any]:
     if not isinstance(responses, dict):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="responses must be an object")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="responses must be an object")
     unknown = sorted(set(responses) - set(QUESTION_BY_ID))
     if unknown:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": "UNKNOWN_QUESTION_ID", "questions": unknown})
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"code": "UNKNOWN_QUESTION_ID", "questions": unknown})
 
     cleaned: dict[str, Any] = {}
     for question_id, value in responses.items():
@@ -569,12 +572,12 @@ def validate_responses(responses: dict[str, Any], *, require_required: bool) -> 
         if question["response_type"] == "single_choice":
             allowed = {item["value"] for item in question["options"]}
             if value not in allowed:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": "INVALID_OPTION", "question_id": question_id})
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"code": "INVALID_OPTION", "question_id": question_id})
         elif question["response_type"] == "short_text":
             if not isinstance(value, str) or len(value) > 300:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": "INVALID_TEXT", "question_id": question_id})
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"code": "INVALID_TEXT", "question_id": question_id})
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": "UNSUPPORTED_RESPONSE_TYPE", "question_id": question_id})
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"code": "UNSUPPORTED_RESPONSE_TYPE", "question_id": question_id})
         cleaned[question_id] = value
 
     if require_required:
@@ -584,7 +587,7 @@ def validate_responses(responses: dict[str, Any], *, require_required: bool) -> 
             if question["required"] and question["question_id"] not in cleaned
         ]
         if missing:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": "REQUIRED_FIELDS_MISSING", "questions": missing})
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"code": "REQUIRED_FIELDS_MISSING", "questions": missing})
     return cleaned
 
 
@@ -658,43 +661,93 @@ def normalize_yes_no(value: Any) -> str:
 def latest_phase4l_assessment(db: Session, user_id: int) -> ProfileAssessment | None:
     return (
         db.query(ProfileAssessment)
-        .filter(ProfileAssessment.user_id == user_id, ProfileAssessment.questionnaire_version == QUESTIONNAIRE_VERSION)
-        .order_by(ProfileAssessment.updated_at.desc(), ProfileAssessment.created_at.desc(), ProfileAssessment.id.desc())
+        .filter(
+            ProfileAssessment.user_id == user_id,
+            ProfileAssessment.questionnaire_version == QUESTIONNAIRE_VERSION,
+            or_(ProfileAssessment.source == ASSESSMENT_SOURCE, ProfileAssessment.source.is_(None)),
+        )
+        .order_by(ProfileAssessment.updated_at.desc(), ProfileAssessment.id.desc())
         .first()
     )
+
+
+def assessment_completion_status(assessment: ProfileAssessment | None) -> str:
+    if not assessment:
+        return "not_started"
+    if assessment.stale_at and assessment.stale_at <= datetime.utcnow() and assessment.submitted_at:
+        return "needs_update"
+    if assessment.submitted_at or assessment.completed_at or assessment.status in ASSESSMENT_TERMINAL_STATUSES:
+        return "completed"
+    if assessment.status == "draft":
+        return "draft"
+    return assessment.status or "draft"
+
+
+def prediction_status(assessment: ProfileAssessment | None) -> str:
+    if not assessment:
+        return "unavailable"
+    if assessment.prediction:
+        return assessment.prediction.status or "pending"
+    if assessment.status == "processing":
+        return "pending"
+    return "unavailable"
+
+
+def completion_percentage(assessment: ProfileAssessment | None) -> int:
+    if not assessment:
+        return 0
+    if assessment_completion_status(assessment) in {"submitted", "completed", "needs_update", "stale"}:
+        return 100
+    responses = assessment.responses_json or {}
+    if not QUESTIONS:
+        return 0
+    return min(100, round((len(responses) / len(QUESTIONS)) * 100))
 
 
 def profile_status_payload(db: Session, user: User) -> dict[str, Any]:
     assessment = latest_phase4l_assessment(db, user.id)
     if not assessment:
         return {
+            "assessment_status": "not_started",
             "status": "not_started",
             "message": "Profile assessment not completed",
             "questionnaire_version": QUESTIONNAIRE_VERSION,
             "assessment_id": None,
+            "profile_assessment_id": None,
             "submitted_at": None,
             "completed_at": None,
+            "updated_at": None,
             "stale_at": None,
+            "completion_percentage": 0,
+            "started_at": None,
+            "can_continue": False,
+            "can_update": False,
             "update_recommended": False,
             "prediction_status": "unavailable",
+            "prediction_available": False,
         }
 
     stale = bool(assessment.stale_at and assessment.stale_at <= datetime.utcnow())
-    status_value = "needs_update" if assessment.status == "completed" and stale else (assessment.status or "draft")
+    assessment_status = assessment_completion_status(assessment)
     prediction = assessment.prediction
     return {
-        "status": status_value,
-        "message": "Profile assessment not completed" if status_value in {"not_started", "draft"} else "Profile assessment completed",
+        "assessment_status": assessment_status,
+        "status": assessment_status,
+        "message": "Profile assessment not completed" if assessment_status in {"not_started", "draft"} else "Profile assessment completed.",
         "questionnaire_version": assessment.questionnaire_version,
         "assessment_id": assessment.id,
         "profile_assessment_id": assessment.profile_assessment_id,
+        "started_at": assessment.started_at,
         "submitted_at": assessment.submitted_at,
         "completed_at": assessment.completed_at,
         "stale_at": assessment.stale_at,
         "updated_at": assessment.updated_at,
+        "completion_percentage": completion_percentage(assessment),
+        "can_continue": assessment_status == "draft",
+        "can_update": assessment_status in {"completed", "needs_update", "stale"},
         "update_recommended": stale,
         "prediction_id": assessment.prediction_id,
-        "prediction_status": prediction.status if prediction else "unavailable",
+        "prediction_status": prediction_status(assessment),
         "prediction_available": bool(prediction and prediction.status == "succeeded" and prediction.is_available),
     }
 
@@ -714,7 +767,7 @@ def create_or_update_draft(db: Session, user: User, responses: dict[str, Any], *
             profile_assessment_id=f"profile-4l-{uuid4().hex[:18]}",
             user_id=user.id,
             questionnaire_version=QUESTIONNAIRE_VERSION,
-            source="phase4l_student_profile_assessment",
+            source=ASSESSMENT_SOURCE,
             started_at=now,
             created_at=now,
         )
@@ -739,20 +792,34 @@ def submit_profile_assessment(db: Session, user: User, responses: dict[str, Any]
     assessment = create_or_update_draft(db, user, cleaned, assessment_id=assessment_id)
     now = datetime.utcnow()
     normalized = preprocess_profile_responses(cleaned)
-    assessment.status = "processing"
+    assessment.status = "completed"
     assessment.submitted_at = now
+    assessment.completed_at = now
     assessment.updated_at = now
     assessment.normalized_features_json = normalized
     assessment.preprocessing_version = PREPROCESSING_VERSION
     assessment.consent_record_id = storage_consent.id
     assessment.stale_at = now + timedelta(days=REFRESH_AFTER_DAYS)
     db.flush()
+    db.commit()
+    db.refresh(assessment)
 
-    prediction = process_profile_prediction(db, user, assessment, normalized)
+    try:
+        prediction = process_profile_prediction(db, user, assessment, normalized)
+    except Exception:
+        prediction = create_failed_prediction(
+            db,
+            user=user,
+            modality="profile",
+            failure_code="PROFILE_PROCESSING_UNEXPECTED",
+            message="Profile assessment was saved, but profile inference could not safely complete.",
+            source_type="profile_assessment",
+            source_record_id=assessment.id,
+            source_timestamp=assessment.submitted_at,
+        )
     assessment.prediction_id = prediction.id if prediction else None
-    assessment.status = "completed" if prediction is None or prediction.status != "failed" else "failed"
-    assessment.completed_at = datetime.utcnow()
-    assessment.updated_at = assessment.completed_at
+    assessment.status = "completed"
+    assessment.updated_at = datetime.utcnow()
     db.flush()
     return assessment
 

@@ -75,16 +75,22 @@ def get_current_profile_assessment(current_user: User = Depends(get_current_user
     _require_student(current_user)
     assessment = latest_phase4l_assessment(db, current_user.id)
     if not assessment:
-        return {"status": "not_started", "questionnaire_version": QUESTIONNAIRE_VERSION, "responses": {}}
+        return {"assessment_status": "not_started", "status": "not_started", "questionnaire_version": QUESTIONNAIRE_VERSION, "responses": {}}
+    status_payload = profile_status_payload(db, current_user)
     return {
         "assessment_id": assessment.id,
         "profile_assessment_id": assessment.profile_assessment_id,
         "questionnaire_version": assessment.questionnaire_version,
-        "status": assessment.status,
+        "assessment_status": status_payload["assessment_status"],
+        "status": status_payload["assessment_status"],
         "responses": assessment.responses_json or {},
+        "completion_percentage": status_payload["completion_percentage"],
+        "started_at": assessment.started_at,
         "submitted_at": assessment.submitted_at,
         "completed_at": assessment.completed_at,
         "stale_at": assessment.stale_at,
+        "updated_at": assessment.updated_at,
+        "prediction_status": status_payload["prediction_status"],
     }
 
 
@@ -103,9 +109,15 @@ def save_profile_draft(
     return {
         "assessment_id": assessment.id,
         "profile_assessment_id": assessment.profile_assessment_id,
-        "status": assessment.status,
+        "assessment_status": "draft",
+        "status": "draft",
         "questionnaire_version": assessment.questionnaire_version,
+        "responses": assessment.responses_json or {},
+        "completion_percentage": profile_status_payload(db, current_user)["completion_percentage"],
+        "started_at": assessment.started_at,
         "updated_at": assessment.updated_at,
+        "can_continue": True,
+        "can_update": False,
     }
 
 
@@ -123,13 +135,19 @@ def submit_profile(
     return {
         "assessment_id": assessment.id,
         "profile_assessment_id": assessment.profile_assessment_id,
-        "status": assessment.status,
+        "assessment_status": "completed",
+        "status": "completed",
         "questionnaire_version": assessment.questionnaire_version,
+        "completion_percentage": 100,
+        "started_at": assessment.started_at,
         "submitted_at": assessment.submitted_at,
         "completed_at": assessment.completed_at,
         "stale_at": assessment.stale_at,
+        "updated_at": assessment.updated_at,
         "prediction_id": assessment.prediction_id,
         "prediction_status": assessment.prediction.status if assessment.prediction else "unavailable",
+        "can_continue": False,
+        "can_update": True,
         "message": "Your profile assessment has been saved and will be used as one source of background screening evidence. It is not a diagnosis.",
     }
 
@@ -148,7 +166,7 @@ def patch_profile_assessment(
     assessment = create_or_update_draft(db, current_user, payload.responses, assessment_id=assessment_id)
     db.commit()
     db.refresh(assessment)
-    return {"assessment_id": assessment.id, "status": assessment.status, "responses": assessment.responses_json or {}}
+    return {"assessment_id": assessment.id, "assessment_status": "draft", "status": "draft", "responses": assessment.responses_json or {}}
 
 
 @router.get("/api/student/profile-assessment/{assessment_id}/summary")
@@ -182,10 +200,10 @@ def reprocess_profile_assessment(
 
     prediction = process_profile_prediction(db, current_user, assessment, normalized)
     assessment.prediction_id = prediction.id
-    assessment.status = "completed" if prediction.status != "failed" else "failed"
+    assessment.status = "completed"
     db.commit()
     db.refresh(assessment)
-    return {"assessment_id": assessment.id, "prediction_id": prediction.id, "prediction_status": prediction.status}
+    return {"assessment_id": assessment.id, "assessment_status": "completed", "prediction_id": prediction.id, "prediction_status": prediction.status}
 
 
 @router.get("/api/counselor/student/{student_id}/profile-summary")

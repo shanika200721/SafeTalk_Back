@@ -15,12 +15,12 @@ from app.models.database_models import (
     DASS21Assessment,
     DailyCheckIn,
     JournalEntry,
-    ProfileAssessment,
     Resource,
     SupportContact,
     User,
 )
 from app.routes.auth import get_current_user
+from app.services.profile_assessment import profile_status_payload
 from app.ml.runtime.base import RuntimeInferenceError, RuntimeModelUnavailable
 from app.ml.runtime.registry import predict_with_active_model
 from app.services.consent import get_latest_consent, has_active_consent
@@ -357,7 +357,8 @@ def _wellness_summary(db: Session, user: User) -> Dict[str, Any]:
         .order_by(DailyCheckIn.created_at.desc())
         .first()
     )
-    profile_done = db.query(ProfileAssessment).filter(ProfileAssessment.user_id == user.id).count() > 0
+    profile_status = profile_status_payload(db, user)
+    profile_done = profile_status["assessment_status"] in {"submitted", "completed"}
     dass_count = db.query(DASS21Assessment).filter(DASS21Assessment.user_id == user.id).count()
     mood_count = db.query(DailyCheckIn).filter(DailyCheckIn.user_id == user.id).count()
     assignment = (

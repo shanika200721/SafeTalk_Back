@@ -5,6 +5,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import get_db
 from app.db.base import Base
+from app.ml.runtime.base import RuntimeInferenceError
 from app.main import app
 from app.models.database_models import CounselorAssignment, ModalityPrediction, ProfileAssessment, User, UserRole
 from app.security import hash_password
@@ -136,7 +137,7 @@ def test_questionnaire_contract_and_validation(client, db_session):
         json={"questionnaire_version": "profile_assessment_v2", "responses": {"unknown": "yes"}},
         headers=headers,
     )
-    assert invalid.status_code == 400
+    assert invalid.status_code == 422
 
     draft = client.post(
         "/api/student/profile-assessment/draft",
@@ -145,6 +146,8 @@ def test_questionnaire_contract_and_validation(client, db_session):
     )
     assert draft.status_code == 200
     assert draft.json()["status"] == "draft"
+    assert draft.json()["assessment_status"] == "draft"
+    assert draft.json()["responses"]["current_year_of_study"] == "year 2"
 
 
 def test_submit_persists_versioned_assessment_without_fake_score(client, db_session):
@@ -161,6 +164,7 @@ def test_submit_persists_versioned_assessment_without_fake_score(client, db_sess
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "completed"
+    assert body["assessment_status"] == "completed"
     assert body["prediction_status"] in {"unavailable", "succeeded"}
 
     assessment = db_session.query(ProfileAssessment).filter(ProfileAssessment.user_id == student.id).one()
@@ -170,6 +174,118 @@ def test_submit_persists_versioned_assessment_without_fake_score(client, db_sess
     prediction = db_session.query(ModalityPrediction).filter(ModalityPrediction.id == assessment.prediction_id).one()
     assert prediction.score_0_100 is None
     assert prediction.source_type == "profile_assessment"
+
+
+def test_draft_updates_same_row_and_current_restores_responses(client, db_session):
+    student = create_user(db_session, "phase4l-draft")
+    headers = auth_headers(client, student.username)
+    grant(client, headers, "profile_data_storage")
+
+    first = client.post(
+        "/api/student/profile-assessment/draft",
+        json={"questionnaire_version": "profile_assessment_v2", "responses": {"current_year_of_study": "year 1"}},
+        headers=headers,
+    )
+    assert first.status_code == 200
+
+    second = client.post(
+        "/api/student/profile-assessment/draft",
+        json={
+            "questionnaire_version": "profile_assessment_v2",
+            "responses": {"current_year_of_study": "year 2", "previous_counseling_support": "prefer_not_to_say"},
+        },
+        headers=headers,
+    )
+    assert second.status_code == 200
+    assert second.json()["assessment_id"] == first.json()["assessment_id"]
+
+    current = client.get("/api/student/profile-assessment/current", headers=headers)
+    assert current.status_code == 200
+    assert current.json()["assessment_status"] == "draft"
+    assert current.json()["responses"]["current_year_of_study"] == "year 2"
+    assert current.json()["responses"]["previous_counseling_support"] == "prefer_not_to_say"
+
+
+def test_prediction_failure_does_not_make_assessment_incomplete(client, db_session, monkeypatch):
+    student = create_user(db_session, "phase4l-prediction-fails")
+    headers = auth_headers(client, student.username)
+    grant(client, headers, "profile_data_storage")
+    grant(client, headers, "profile_model_processing")
+
+    def fail_runtime(*args, **kwargs):
+        raise RuntimeInferenceError("forced test failure")
+
+    monkeypatch.setattr("app.services.profile_assessment.predict_with_active_model", fail_runtime)
+
+    response = client.post(
+        "/api/student/profile-assessment/submit",
+        json={"questionnaire_version": "profile_assessment_v2", "responses": valid_responses()},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["assessment_status"] == "completed"
+    assert body["prediction_status"] == "failed"
+
+    status_response = client.get("/api/student/profile-assessment/status", headers=headers)
+    assert status_response.status_code == 200
+    status_body = status_response.json()
+    assert status_body["assessment_status"] == "completed"
+    assert status_body["prediction_status"] == "failed"
+
+    wellness = client.get("/api/student/wellness", headers=headers)
+    assert wellness.status_code == 200
+    assert "Profile assessment" not in wellness.json()["summary"]["assessment_progress"]["pending_assessments"]
+
+
+def test_legacy_incomplete_row_does_not_override_new_v2_completion(client, db_session):
+    student = create_user(db_session, "phase4l-legacy-order")
+    headers = auth_headers(client, student.username)
+    grant(client, headers, "profile_data_storage")
+
+    legacy = ProfileAssessment(
+        user_id=student.id,
+        status="draft",
+        questionnaire_version=None,
+        responses_json={"legacy": "value"},
+    )
+    db_session.add(legacy)
+    db_session.commit()
+
+    submitted = client.post(
+        "/api/student/profile-assessment/submit",
+        json={"questionnaire_version": "profile_assessment_v2", "responses": valid_responses()},
+        headers=headers,
+    )
+    assert submitted.status_code == 200
+
+    status_response = client.get("/api/student/profile-assessment/status", headers=headers)
+    current_response = client.get("/api/student/profile-assessment/current", headers=headers)
+    assert status_response.json()["assessment_status"] == "completed"
+    assert current_response.json()["assessment_status"] == "completed"
+    assert current_response.json()["assessment_id"] == status_response.json()["assessment_id"]
+    assert current_response.json()["responses"]["current_year_of_study"] == "year 2"
+
+
+def test_another_student_cannot_patch_profile_assessment(client, db_session):
+    owner = create_user(db_session, "phase4l-owner")
+    other = create_user(db_session, "phase4l-other")
+    owner_headers = auth_headers(client, owner.username)
+    other_headers = auth_headers(client, other.username)
+    grant(client, owner_headers, "profile_data_storage")
+    grant(client, other_headers, "profile_data_storage")
+
+    draft = client.post(
+        "/api/student/profile-assessment/draft",
+        json={"questionnaire_version": "profile_assessment_v2", "responses": {"current_year_of_study": "year 2"}},
+        headers=owner_headers,
+    )
+    denied = client.patch(
+        f"/api/student/profile-assessment/{draft.json()['assessment_id']}",
+        json={"responses": {"current_year_of_study": "year 3"}},
+        headers=other_headers,
+    )
+    assert denied.status_code == 404
 
 
 def test_counselor_summary_is_assignment_bound_and_not_raw_dump(client, db_session):
