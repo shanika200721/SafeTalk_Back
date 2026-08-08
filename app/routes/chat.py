@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from app.database import get_db
 from app.models.database_models import CounselorAssignment, User, ChatMessage, UserRole
 from app.routes.auth import get_current_user
@@ -30,7 +30,7 @@ ALLOWED_AUDIO_MIME_TYPES = {
     "audio/mp4",
     "audio/x-m4a",
 }
-ALLOWED_MESSAGE_TYPES = {"text", "system", "attachment"}
+ALLOWED_MESSAGE_TYPES = {"text", "system", "attachment", "call"}
 
 # ==================== Pydantic Models ====================
 
@@ -72,6 +72,44 @@ class ChatConversationResponse(BaseModel):
     conversation_status: str = "active"
     assigned_counselor: Optional[dict] = None
     student: Optional[dict] = None
+
+
+class CallRequestCreate(BaseModel):
+    receiver_id: int
+
+
+class CallSignalResponse(BaseModel):
+    id: int
+    student_id: int
+    counselor_id: int
+    caller_id: int
+    receiver_id: int
+    caller_name: str
+    receiver_name: str
+    student_name: str
+    student_email: Optional[str] = None
+    counselor_name: str
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    answered_at: Optional[datetime] = None
+    declined_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+
+
+class CallWebRTCSignalPayload(BaseModel):
+    offer: Optional[Dict[str, Any]] = None
+    answer: Optional[Dict[str, Any]] = None
+    ice_candidate: Optional[Dict[str, Any]] = None
+
+
+class CallWebRTCSignalResponse(BaseModel):
+    call_id: int
+    offer: Optional[Dict[str, Any]] = None
+    answer: Optional[Dict[str, Any]] = None
+    ice_candidates: List[Dict[str, Any]] = []
+    updated_at: Optional[datetime] = None
 
 
 def _role_value(user: User) -> str:
@@ -172,6 +210,80 @@ def _message_response(message: ChatMessage) -> ChatMessageResponse:
         created_at=message.created_at,
         sender_username=message.sender.username,
     )
+
+
+def _call_metadata(
+    *,
+    status_value: str,
+    student: User,
+    counselor: User,
+    caller: User,
+    receiver: User,
+    requested_at: datetime,
+    **extra,
+) -> dict:
+    return {
+        "call_status": status_value,
+        "student_id": student.id,
+        "counselor_id": counselor.id,
+        "student_name": student.full_name or student.username,
+        "student_email": student.email,
+        "counselor_name": counselor.full_name or counselor.username,
+        "caller_id": caller.id,
+        "receiver_id": receiver.id,
+        "caller_name": caller.full_name or caller.username,
+        "receiver_name": receiver.full_name or receiver.username,
+        "requested_at": requested_at.isoformat(),
+        **extra,
+    }
+
+
+def _call_response(message: ChatMessage) -> CallSignalResponse:
+    metadata = message.metadata_json or {}
+    student = message.sender if _is_student(message.sender) else message.receiver
+    counselor = message.receiver if is_counselor_role(message.receiver) else message.sender
+    return CallSignalResponse(
+        id=message.id,
+        student_id=metadata.get("student_id") or student.id,
+        counselor_id=metadata.get("counselor_id") or counselor.id,
+        caller_id=metadata.get("caller_id") or message.sender_id,
+        receiver_id=metadata.get("receiver_id") or message.receiver_id,
+        caller_name=metadata.get("caller_name") or message.sender.full_name or message.sender.username,
+        receiver_name=metadata.get("receiver_name") or message.receiver.full_name or message.receiver.username,
+        student_name=metadata.get("student_name") or student.full_name or student.username,
+        student_email=metadata.get("student_email") or student.email,
+        counselor_name=metadata.get("counselor_name") or counselor.full_name or counselor.username,
+        status=metadata.get("call_status") or "ringing",
+        created_at=message.created_at,
+        updated_at=message.updated_at,
+        answered_at=datetime.fromisoformat(metadata["answered_at"]) if metadata.get("answered_at") else None,
+        declined_at=datetime.fromisoformat(metadata["declined_at"]) if metadata.get("declined_at") else None,
+        cancelled_at=datetime.fromisoformat(metadata["cancelled_at"]) if metadata.get("cancelled_at") else None,
+        ended_at=datetime.fromisoformat(metadata["ended_at"]) if metadata.get("ended_at") else None,
+    )
+
+
+def _webrtc_signal_response(message: ChatMessage) -> CallWebRTCSignalResponse:
+    metadata = message.metadata_json or {}
+    webrtc = metadata.get("webrtc") or {}
+    return CallWebRTCSignalResponse(
+        call_id=message.id,
+        offer=webrtc.get("offer"),
+        answer=webrtc.get("answer"),
+        ice_candidates=webrtc.get("ice_candidates") or [],
+        updated_at=message.updated_at,
+    )
+
+
+def _get_authorized_call(message_id: int, current_user: User, db: Session) -> ChatMessage:
+    message = db.query(ChatMessage).filter(ChatMessage.id == message_id, ChatMessage.message_type == "call").first()
+    if not message:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Call request not found")
+    if not _is_chat_participant(message, current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to access this call")
+    other_user = message.receiver if message.sender_id == current_user.id else message.sender
+    _authorize_direct_chat(db, current_user, other_user)
+    return message
 
 def _is_chat_participant(message: ChatMessage, user: User) -> bool:
     return message.sender_id == user.id or message.receiver_id == user.id
@@ -283,6 +395,295 @@ def send_message(
     db.refresh(chat_message)
     
     return _message_response(chat_message)
+
+
+@router.post("/calls/request", response_model=CallSignalResponse)
+def request_call(
+    payload: CallRequestCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create an immediate call request between assigned student/counselor participants."""
+    receiver = db.query(User).filter(User.id == payload.receiver_id).first()
+    if not receiver:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Call receiver not found")
+    student, counselor = _authorize_direct_chat(db, current_user, receiver)
+
+    existing = (
+        db.query(ChatMessage)
+        .filter(
+            or_(
+                and_(ChatMessage.sender_id == current_user.id, ChatMessage.receiver_id == receiver.id),
+                and_(ChatMessage.sender_id == receiver.id, ChatMessage.receiver_id == current_user.id),
+            ),
+            ChatMessage.message_type == "call",
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .first()
+    )
+    if existing and (existing.metadata_json or {}).get("call_status") in {"ringing", "answered"}:
+        return _call_response(existing)
+
+    now = datetime.utcnow()
+    call_message = ChatMessage(
+        sender_id=current_user.id,
+        receiver_id=receiver.id,
+        message="Immediate call requested",
+        message_type="call",
+        sent_at=now,
+        delivery_status="sent",
+        metadata_json=_call_metadata(
+            status_value="ringing",
+            student=student,
+            counselor=counselor,
+            caller=current_user,
+            receiver=receiver,
+            requested_at=now,
+        ),
+    )
+    db.add(call_message)
+    db.commit()
+    db.refresh(call_message)
+    return _call_response(call_message)
+
+
+@router.get("/calls/incoming", response_model=List[CallSignalResponse])
+def incoming_calls(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return ringing call requests for the signed-in chat participant."""
+    _require_chat_user(current_user)
+    calls = (
+        db.query(ChatMessage)
+        .filter(
+            ChatMessage.receiver_id == current_user.id,
+            ChatMessage.message_type == "call",
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .limit(20)
+        .all()
+    )
+    return [
+        _call_response(call)
+        for call in calls
+        if (call.metadata_json or {}).get("call_status") == "ringing"
+    ]
+
+
+@router.get("/calls/outgoing", response_model=List[CallSignalResponse])
+def outgoing_calls(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return recent call requests created by the signed-in chat participant."""
+    _require_chat_user(current_user)
+    calls = (
+        db.query(ChatMessage)
+        .filter(
+            ChatMessage.sender_id == current_user.id,
+            ChatMessage.message_type == "call",
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .limit(10)
+        .all()
+    )
+    return [_call_response(call) for call in calls]
+
+
+@router.get("/calls/active", response_model=List[CallSignalResponse])
+def active_calls(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return active ringing or answered calls for the signed-in chat participant."""
+    _require_chat_user(current_user)
+    calls = (
+        db.query(ChatMessage)
+        .filter(
+            or_(ChatMessage.sender_id == current_user.id, ChatMessage.receiver_id == current_user.id),
+            ChatMessage.message_type == "call",
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .limit(20)
+        .all()
+    )
+    return [
+        _call_response(call)
+        for call in calls
+        if (call.metadata_json or {}).get("call_status") in {"ringing", "answered"}
+    ]
+
+
+@router.get("/calls/{call_id}/signal", response_model=CallWebRTCSignalResponse)
+def get_call_signal(
+    call_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return WebRTC signaling data for an answered call."""
+    call = _get_authorized_call(call_id, current_user, db)
+    metadata = call.metadata_json or {}
+    if metadata.get("call_status") != "answered":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Call is not ready for audio signaling")
+    return _webrtc_signal_response(call)
+
+
+@router.post("/calls/{call_id}/signal", response_model=CallWebRTCSignalResponse)
+def update_call_signal(
+    call_id: int,
+    payload: CallWebRTCSignalPayload,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Store WebRTC offer, answer, and ICE candidates for browser voice calls."""
+    call = _get_authorized_call(call_id, current_user, db)
+    metadata = call.metadata_json or {}
+    if metadata.get("call_status") != "answered":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Call is not ready for audio signaling")
+
+    now = datetime.utcnow()
+    webrtc = {
+        "offer": None,
+        "answer": None,
+        "ice_candidates": [],
+        **(metadata.get("webrtc") or {}),
+    }
+
+    if payload.offer:
+        webrtc["offer"] = {
+            **payload.offer,
+            "from_user_id": current_user.id,
+            "created_at": now.isoformat(),
+        }
+        webrtc["answer"] = None
+        webrtc["ice_candidates"] = [
+            candidate for candidate in (webrtc.get("ice_candidates") or [])
+            if candidate.get("from_user_id") == current_user.id
+        ]
+
+    if payload.answer:
+        webrtc["answer"] = {
+            **payload.answer,
+            "from_user_id": current_user.id,
+            "created_at": now.isoformat(),
+        }
+
+    if payload.ice_candidate:
+        candidate = {
+            **payload.ice_candidate,
+            "from_user_id": current_user.id,
+            "created_at": now.isoformat(),
+        }
+        candidates = (webrtc.get("ice_candidates") or []) + [candidate]
+        webrtc["ice_candidates"] = candidates[-100:]
+
+    call.metadata_json = {
+        **metadata,
+        "webrtc": webrtc,
+    }
+    db.commit()
+    db.refresh(call)
+    return _webrtc_signal_response(call)
+
+
+@router.post("/calls/{call_id}/answer", response_model=CallSignalResponse)
+def answer_call(
+    call_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    call = _get_authorized_call(call_id, current_user, db)
+    if call.receiver_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the call receiver can answer this call")
+    metadata = call.metadata_json or {}
+    if metadata.get("call_status") != "ringing":
+        return _call_response(call)
+    now = datetime.utcnow()
+    call.metadata_json = {
+        **metadata,
+        "call_status": "answered",
+        "answered_at": now.isoformat(),
+        "answered_by": current_user.id,
+    }
+    call.is_read = True
+    call.read_at = now
+    call.delivery_status = "read"
+    db.commit()
+    db.refresh(call)
+    return _call_response(call)
+
+
+@router.post("/calls/{call_id}/decline", response_model=CallSignalResponse)
+def decline_call(
+    call_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    call = _get_authorized_call(call_id, current_user, db)
+    if call.receiver_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the call receiver can decline this call")
+    metadata = call.metadata_json or {}
+    if metadata.get("call_status") != "ringing":
+        return _call_response(call)
+    now = datetime.utcnow()
+    call.metadata_json = {
+        **metadata,
+        "call_status": "declined",
+        "declined_at": now.isoformat(),
+        "declined_by": current_user.id,
+    }
+    call.is_read = True
+    call.read_at = now
+    call.delivery_status = "read"
+    db.commit()
+    db.refresh(call)
+    return _call_response(call)
+
+
+@router.post("/calls/{call_id}/cancel", response_model=CallSignalResponse)
+def cancel_call(
+    call_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    call = _get_authorized_call(call_id, current_user, db)
+    if call.sender_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the call requester can cancel this call")
+    metadata = call.metadata_json or {}
+    if metadata.get("call_status") != "ringing":
+        return _call_response(call)
+    now = datetime.utcnow()
+    call.metadata_json = {
+        **metadata,
+        "call_status": "cancelled",
+        "cancelled_at": now.isoformat(),
+    }
+    db.commit()
+    db.refresh(call)
+    return _call_response(call)
+
+
+@router.post("/calls/{call_id}/end", response_model=CallSignalResponse)
+def end_call(
+    call_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    call = _get_authorized_call(call_id, current_user, db)
+    metadata = call.metadata_json or {}
+    if metadata.get("call_status") != "answered":
+        return _call_response(call)
+    now = datetime.utcnow()
+    call.metadata_json = {
+        **metadata,
+        "call_status": "ended",
+        "ended_at": now.isoformat(),
+        "ended_by": current_user.id,
+    }
+    db.commit()
+    db.refresh(call)
+    return _call_response(call)
 
 @router.get("/conversations", response_model=List[ChatConversationResponse])
 def get_conversations(

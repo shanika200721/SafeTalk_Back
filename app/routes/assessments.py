@@ -49,6 +49,35 @@ def _dass21_response(assessment: DASS21Assessment) -> dict:
         "metadata": dass21_metadata_dict(assessment),
     }
 
+
+def _dass21_alert_level(assessment: DASS21Assessment) -> str:
+    severities = {
+        str(assessment.depression_severity or "").lower(),
+        str(assessment.anxiety_severity or "").lower(),
+        str(assessment.stress_severity or "").lower(),
+    }
+    if any("very" in value or "extreme" in value for value in severities):
+        return "SEVERE"
+    if any("severe" in value for value in severities):
+        return "HIGH"
+    if any("moderate" in value for value in severities):
+        return "MEDIUM"
+    return "LOW"
+
+
+def _create_dass21_submission_alert(db: Session, assessment: DASS21Assessment, *, updated: bool = False) -> None:
+    action = "updated" if updated else "submitted"
+    level = _dass21_alert_level(assessment)
+    db.add(
+        Alert(
+            user_id=assessment.user_id,
+            alert_type="dass21_submission",
+            risk_level=level,
+            message=f"DASS-21 self test {action}. Counselor review is available.",
+            is_read=False,
+        )
+    )
+
 # ==================== Profile Assessment ====================
 
 @router.post("/profile", response_model=ProfileAssessmentSchema)
@@ -172,6 +201,7 @@ def create_dass21_assessment(
         db.add(db_assessment)
         db.flush()
         create_dass21_prediction_for_assessment(db, db_assessment)
+        _create_dass21_submission_alert(db, db_assessment)
         db.commit()
         db.refresh(db_assessment)
         
@@ -326,6 +356,7 @@ def update_dass21_assessment(
         
         db.flush()
         create_dass21_prediction_for_assessment(db, assessment)
+        _create_dass21_submission_alert(db, assessment, updated=True)
         db.commit()
         db.refresh(assessment)
         
