@@ -25,6 +25,23 @@ configure_logging()
 logger = get_logger("app.main")
 settings.validate_production_safety()
 
+DEV_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+]
+
+
+def resolve_cors_origins():
+    origins = list(settings.CORS_ORIGINS)
+    if settings.ENVIRONMENT.lower() in {"development", "test"} and "*" not in origins:
+        origins.extend(DEV_CORS_ORIGINS)
+    return list(dict.fromkeys(origins))
+
+
+cors_origins = resolve_cors_origins()
+
 if settings.is_sqlite and settings.ENVIRONMENT.lower() in {"development", "test"}:
     # Temporary compatibility fallback while Alembic migrations are adopted.
     Base.metadata.create_all(bind=engine)
@@ -41,8 +58,8 @@ app = FastAPI(
 # Add CORS middleware - this MUST be added first before other middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_ORIGINS != ["*"],
+    allow_origins=cors_origins,
+    allow_credentials=cors_origins != ["*"],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],
     max_age=86400,
@@ -54,12 +71,12 @@ app.middleware("http")(production_middleware)
 @app.middleware("http")
 async def ensure_cors_headers(request, call_next):
     request_origin = request.headers.get("origin")
-    if "*" in settings.CORS_ORIGINS:
+    if "*" in cors_origins:
         allow_origin = "*"
-    elif request_origin in settings.CORS_ORIGINS:
+    elif request_origin in cors_origins:
         allow_origin = request_origin
     else:
-        allow_origin = settings.CORS_ORIGINS[0] if settings.CORS_ORIGINS else ""
+        allow_origin = cors_origins[0] if cors_origins else ""
 
     # Handle preflight OPTIONS requests
     if request.method == "OPTIONS":
