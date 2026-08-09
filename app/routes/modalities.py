@@ -43,6 +43,7 @@ from app.services.modalities import (
     create_unavailable_prediction,
     populate_dass21_metadata,
     prediction_to_response,
+    trigger_fusion_for_prediction,
     verify_owned_chat_message,
 )
 from app.utils.assessment_calculator import ProfileRiskCalculator
@@ -196,7 +197,7 @@ def predict_profile(
             )
     else:
         prediction = create_profile_prediction_for_assessment(db, assessment)
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_profile_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 
@@ -243,7 +244,7 @@ def predict_dass21(
             populate_dass21_metadata(assessment)
 
     prediction = create_dass21_prediction_for_assessment(db, assessment)
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_dass21_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 
@@ -269,7 +270,7 @@ def predict_mood(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily check-in not found")
 
     prediction = create_mood_prediction_for_checkin(db, checkin)
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_mood_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 
@@ -342,7 +343,7 @@ def predict_text(
             feature_snapshot=snapshot,
             model_registry=active_model,
         )
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_text_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 
@@ -388,7 +389,7 @@ def predict_speech(
         source_timestamp=source_timestamp,
         feature_snapshot=snapshot,
     )
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_speech_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 
@@ -409,7 +410,7 @@ def predict_face(
         message="Backend face inference is not active. Frontend random emotion output is not accepted as evidence.",
         source_type="future_face_reference" if request.source_reference_id else "no_face_source",
     )
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_face_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 
@@ -430,7 +431,7 @@ def predict_behavioral(
         message="Behavioral modality is not validated for runtime prediction.",
         source_type="not_validated",
     )
-    db.commit()
+    trigger_fusion_for_prediction(db, prediction, trigger_source="modality_behavioral_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
 

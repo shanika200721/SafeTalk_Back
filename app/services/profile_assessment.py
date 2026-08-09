@@ -26,6 +26,7 @@ from app.services.modalities import (
     create_feature_snapshot,
     create_prediction,
     create_unavailable_prediction,
+    trigger_fusion_for_prediction,
 )
 
 
@@ -821,6 +822,8 @@ def submit_profile_assessment(db: Session, user: User, responses: dict[str, Any]
     assessment.status = "completed"
     assessment.updated_at = datetime.utcnow()
     db.flush()
+    if prediction:
+        trigger_fusion_for_prediction(db, prediction, trigger_source="profile_assessment_submission", actor=user)
     return assessment
 
 

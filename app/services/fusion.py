@@ -7,10 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.ml.fusion.weighted_late_fusion import classify_score, weighted_score
-from app.models.database_models import ModalityPrediction, RiskAssessment, RiskAssessmentInput
+from app.models.database_models import ModalityPrediction, RiskAssessment, RiskAssessmentInput, UserRole
 
 
 CONFIG_VERSION = "controlled-late-fusion-v2"
@@ -127,6 +128,24 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, dict):
         return {key: _json_safe(item) for key, item in value.items()}
     return value
+
+
+def _existing_assessment_for_trigger(
+    db: Session,
+    *,
+    trigger_prediction_id: Optional[int],
+) -> Optional[RiskAssessment]:
+    if trigger_prediction_id is None:
+        return None
+    return (
+        db.query(RiskAssessment)
+        .filter(
+            RiskAssessment.trigger_prediction_id == trigger_prediction_id,
+            RiskAssessment.assessment_type == ASSESSMENT_TYPE,
+        )
+        .order_by(RiskAssessment.created_at.desc(), RiskAssessment.id.desc())
+        .first()
+    )
 
 
 def _now_utc(assessment_time: Optional[datetime] = None) -> datetime:
@@ -264,8 +283,13 @@ def _check_prediction(
             and registry.verification_status == "passed"
             and registry.status == "active"
         )
-        if not (metadata.get("fusion_eligible") is True or verified_registry):
+        if not verified_registry:
             reason = "insufficient_model_reliability" if prediction.modality == "face" else "runtime_model_not_verified_for_fusion"
+            return None, ExcludedPrediction(prediction.modality, reason, prediction)
+        if metadata.get("fusion_eligible") is not True:
+            reason = metadata.get("fusion_status") or (
+                "insufficient_model_reliability" if prediction.modality == "face" else "excluded_no_approved_risk_mapping"
+            )
             return None, ExcludedPrediction(prediction.modality, reason, prediction)
     if prediction.status != "succeeded":
         return None, ExcludedPrediction(prediction.modality, f"status_{prediction.status}", prediction)
@@ -372,6 +396,9 @@ def _build_response(
     effective_weights: dict[str, float],
     base_coverage: float,
     coverage_category: str,
+    trigger_source: Optional[str] = None,
+    trigger_prediction_id: Optional[int] = None,
+    trigger_metadata: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     source_times = [item.source_timestamp for item in selected.values()]
     latest_source = max(source_times) if source_times else None
@@ -420,6 +447,11 @@ def _build_response(
         "score": score,
         "risk_level": risk_level,
         "assessment_type": ASSESSMENT_TYPE,
+        "trigger": {
+            "source": trigger_source,
+            "prediction_id": trigger_prediction_id,
+            "metadata": trigger_metadata or {},
+        },
         "fusion": {
             "config_version": CONFIG_VERSION,
             "config_hash": configuration_hash(),
@@ -479,8 +511,16 @@ def run_controlled_fusion(
     user_id: int,
     persist: bool = True,
     assessment_time: Optional[datetime] = None,
+    trigger_source: Optional[str] = None,
+    trigger_prediction_id: Optional[int] = None,
+    trigger_metadata: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     now = _now_utc(assessment_time)
+    if persist:
+        existing = _existing_assessment_for_trigger(db, trigger_prediction_id=trigger_prediction_id)
+        if existing:
+            return serialize_assessment(existing)
+
     base_weights = _weights()
     selected, excluded, missing = _select_predictions(db, user_id, now)
     base_coverage = round(sum(base_weights[modality] for modality in selected), 12)
@@ -523,9 +563,15 @@ def run_controlled_fusion(
             effective_weights=effective_weights,
             base_coverage=base_coverage,
             coverage_category=coverage_category,
+            trigger_source=trigger_source,
+            trigger_prediction_id=trigger_prediction_id,
+            trigger_metadata=trigger_metadata,
         )
         assessment = RiskAssessment(
             student_id=user_id,
+            trigger_source=trigger_source,
+            trigger_prediction_id=trigger_prediction_id,
+            trigger_metadata_json=_json_safe(trigger_metadata or {}),
             final_probability=score,
             final_score=round(score * 100, 6) if score is not None else None,
             risk_level=risk_level,
@@ -616,7 +662,54 @@ def run_controlled_fusion(
         missing=missing,
         effective_weights=effective_weights,
         base_coverage=base_coverage,
-        coverage_category=coverage_category,
+            coverage_category=coverage_category,
+            trigger_source=trigger_source,
+            trigger_prediction_id=trigger_prediction_id,
+            trigger_metadata=trigger_metadata,
+    )
+
+
+def evaluate_student_fusion(
+    db: Session,
+    *,
+    student_id: int,
+    trigger_source: str,
+    trigger_prediction_id: Optional[int] = None,
+    actor_user_id: Optional[int] = None,
+    actor_role: Optional[UserRole | str] = None,
+    assessment_time: Optional[datetime] = None,
+) -> dict[str, Any]:
+    """Run canonical controlled fusion after a real evidence event.
+
+    The trigger prediction is used for ownership validation and idempotency.
+    Missing or ineligible modalities are handled by the controlled fusion policy.
+    """
+
+    if actor_user_id is not None and actor_user_id != student_id:
+        role_value = getattr(actor_role, "value", actor_role)
+        if role_value != "admin":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Fusion trigger is not owned by this student")
+
+    prediction = None
+    if trigger_prediction_id is not None:
+        prediction = db.query(ModalityPrediction).filter(ModalityPrediction.id == trigger_prediction_id).first()
+        if not prediction:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fusion trigger prediction not found")
+        if prediction.student_id != student_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Fusion trigger prediction belongs to another student")
+
+    return run_controlled_fusion(
+        db,
+        user_id=student_id,
+        persist=True,
+        assessment_time=assessment_time,
+        trigger_source=trigger_source,
+        trigger_prediction_id=trigger_prediction_id,
+        trigger_metadata={
+            "trigger_prediction_modality": prediction.modality if prediction else None,
+            "trigger_prediction_status": prediction.status if prediction else None,
+            "trigger_prediction_source_type": prediction.source_type if prediction else None,
+        },
     )
 
 
@@ -642,6 +735,11 @@ def serialize_assessment(assessment: RiskAssessment) -> dict[str, Any]:
         "score": assessment.model_score,
         "risk_level": assessment.model_risk_level,
         "assessment_type": assessment.assessment_type,
+        "trigger": {
+            "source": assessment.trigger_source,
+            "prediction_id": assessment.trigger_prediction_id,
+            "metadata": assessment.trigger_metadata_json or {},
+        },
         "fusion": {
             "config_version": assessment.fusion_config_version,
             "config_hash": assessment.fusion_config_hash,

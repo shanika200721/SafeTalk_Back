@@ -247,6 +247,7 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         .first()
     )
     if model is None:
+        blocking_reason = "no_registered_model" if modality != "behavioral" else "no_verified_behavioral_model"
         return {
             "modality": modality,
             "model_id": None,
@@ -259,11 +260,15 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
             "smoke_test_status": "not_run",
             "last_successful_inference": last_success.created_at if last_success else None,
             "last_failed_inference": last_failure.created_at if last_failure else None,
-            "failure_reason": "no_registered_model" if modality != "behavioral" else "no_verified_behavioral_model",
+            "failure_reason": blocking_reason,
+            "blocking_reason": blocking_reason,
             "predictions_last_24h": int(predictions_last_24h or 0),
             "average_inference_duration": None,
             "fusion_eligibility": modality in {"profile", "text"} and bool(last_success),
+            "fusion_status": "eligible" if modality in {"profile", "text"} and bool(last_success) else "excluded_no_validated_model",
             "health_state": "unavailable",
+            "technical_status": "unavailable",
+            "research_reliability": "not_evaluated" if modality == "behavioral" else "experimental",
         }
     artifact_available = False
     hash_valid = False
@@ -280,7 +285,7 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
     if model.modality == "face" and not activation_eligible:
         failure_reason = failure_reason or "insufficient_model_reliability"
     if model.modality == "speech" and not activation_eligible:
-        failure_reason = failure_reason or "runtime_preprocessor_not_approved"
+        failure_reason = failure_reason or "browser_audio_runtime_not_verified"
     if not artifact_available:
         health_state = "missing_artifact"
     elif failure_reason in {"PREPROCESSOR_MISSING", "runtime_preprocessor_not_approved"}:
@@ -295,6 +300,31 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         health_state = "verified_inactive"
     else:
         health_state = "inactive"
+    if health_state in {"verified_active", "verified_inactive"}:
+        technical_status = "verified_active" if model.is_active and activation_eligible else "technically_verified"
+    elif health_state == "incompatible_preprocessing":
+        technical_status = "incompatible_preprocessing"
+    elif artifact_available:
+        technical_status = "artifact_present"
+    else:
+        technical_status = "unavailable"
+    if modality in {"profile", "text"}:
+        research_reliability = "validated" if model.verification_status == "passed" else "experimental"
+    elif modality == "face":
+        research_reliability = "low_reliability"
+    elif modality == "behavioral":
+        research_reliability = "not_evaluated"
+    else:
+        research_reliability = "experimental"
+    if model.modality == "speech":
+        fusion_eligible = False
+        fusion_status = "excluded_no_approved_risk_mapping"
+    elif model.modality == "face":
+        fusion_eligible = False
+        fusion_status = "excluded_low_reliability"
+    else:
+        fusion_eligible = model.modality in {"profile", "text"} and model.is_active and activation_eligible
+        fusion_status = "eligible" if fusion_eligible else "excluded"
     return {
         "modality": modality,
         "model_id": model.id,
@@ -306,16 +336,20 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         "active": model.is_active,
         "artifact_available": artifact_available,
         "hash_valid": hash_valid,
-        "loader_status": "available" if model.modality in {"profile", "text"} and model.is_active else "not_approved",
+        "loader_status": "available" if model.modality in {"profile", "text"} and model.is_active else ("available_with_ffmpeg" if model.modality == "speech" and activation_eligible else "not_approved"),
         "preprocessing_status": "available" if activation_eligible else "not_approved",
         "smoke_test_status": verification.get("smoke_test_status", "not_run"),
         "last_successful_inference": last_success.created_at if last_success else None,
         "last_failed_inference": last_failure.created_at if last_failure else None,
         "failure_reason": failure_reason,
+        "blocking_reason": failure_reason,
         "predictions_last_24h": int(predictions_last_24h or 0),
         "average_inference_duration": None,
-        "fusion_eligibility": model.modality in {"profile", "text", "speech", "face"} and model.is_active and activation_eligible,
+        "fusion_eligibility": fusion_eligible,
+        "fusion_status": fusion_status,
         "health_state": health_state,
+        "technical_status": technical_status,
+        "research_reliability": research_reliability,
         "limitations": model.limitations_json or [],
     }
 

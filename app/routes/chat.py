@@ -8,7 +8,11 @@ from app.database import get_db
 from app.models.database_models import CounselorAssignment, User, ChatMessage, UserRole
 from app.routes.auth import get_current_user
 from app.services.consent import get_latest_consent
-from app.services.modalities import create_unavailable_prediction
+from app.ml.runtime.base import RuntimeInferenceError, RuntimeModelUnavailable
+from app.ml.runtime.speech import SPEECH_RISK_MAPPING_STATUS, SPEECH_RUNTIME_LIMITATION, SpeechRuntimeLoader
+from app.ml.runtime.speech_preprocessor import SpeechPreprocessingError, validate_speech_audio_quality
+from app.services.model_registry import get_active_model
+from app.services.modalities import create_feature_snapshot, create_prediction, create_unavailable_prediction, trigger_fusion_for_prediction
 from app.services.counselor_workflow import has_active_assignment, is_counselor_role
 from pydantic import BaseModel
 from pathlib import Path
@@ -190,6 +194,189 @@ def _analysis_consent_record(db: Session, user: User):
     if consent and consent.is_granted and consent.withdrawn_at is None:
         return consent
     return None
+
+
+def _speech_failure_code(status_value: str) -> str:
+    return {
+        "too_short": "AUDIO_TOO_SHORT",
+        "silent": "AUDIO_SILENT",
+        "corrupt": "AUDIO_CORRUPT",
+        "unsupported": "UNSUPPORTED_AUDIO_CODEC",
+        "low_quality": "AUDIO_LOW_QUALITY",
+    }.get(status_value, "SPEECH_ANALYSIS_FAILED")
+
+
+def _persist_speech_analysis(
+    db: Session,
+    *,
+    chat_message: ChatMessage,
+    student: User,
+    file_path: Path,
+    content_type: str,
+    consent_record_id: Optional[int],
+    conversation_id: str,
+):
+    active_model = get_active_model(db, modality="speech")
+    if not active_model:
+        prediction = create_unavailable_prediction(
+            db,
+            user=student,
+            modality="speech",
+            failure_code="MODEL_NOT_ACTIVE",
+            message="The speech runtime model is not active; voice message delivery was not blocked.",
+            source_type="counselor_chat_voice_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+        )
+        prediction.metadata_json = {
+            **(prediction.metadata_json or {}),
+            "source_type": "counselor_chat_voice_message",
+            "source_reference": chat_message.id,
+            "conversation_reference": conversation_id,
+            "analysis_consent_record_id": consent_record_id,
+            "analysis_requested": True,
+            "student_is_audio_speaker": True,
+            "fusion_status": "excluded_model_not_active",
+            "fusion_eligible": False,
+            "normalized_score": None,
+            "risk_mapping_version": None,
+            "limitations": [
+                "Voice-emotion analysis is supporting evidence only and not a diagnosis.",
+                "Speech runtime inference is inactive; no emotion label or contribution was generated.",
+            ],
+        }
+        return prediction
+
+    quality = validate_speech_audio_quality(file_path, content_type=content_type)
+    if not quality.accepted:
+        return create_prediction(
+            db,
+            student_id=student.id,
+            modality="speech",
+            status_value="failed",
+            is_available=False,
+            output_type="machine_learning",
+            source_type="counselor_chat_voice_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+            failure_code=_speech_failure_code(quality.status),
+            failure_message_safe="Voice-emotion analysis was unavailable because the uploaded audio did not meet quality requirements.",
+            raw_output_json={"quality": quality.__dict__},
+            metadata_json={
+                "source_type": "counselor_chat_voice_message",
+                "source_reference": chat_message.id,
+                "conversation_reference": conversation_id,
+                "analysis_consent_record_id": consent_record_id,
+                "analysis_requested": True,
+                "student_is_audio_speaker": True,
+                "fusion_status": "excluded_audio_quality",
+                "fusion_eligible": False,
+                "normalized_score": None,
+                "risk_mapping_version": None,
+                "limitation": "Poor-quality audio was not converted into a risk score.",
+            },
+            model_registry=active_model,
+            valid_for_hours=None,
+            data_quality_status=quality.status,
+            data_quality_flags=quality.flags,
+        )
+
+    loader = SpeechRuntimeLoader()
+    try:
+        result = loader.predict(active_model, {"path": str(file_path), "content_type": content_type})
+    except (RuntimeModelUnavailable, RuntimeInferenceError, SpeechPreprocessingError) as exc:
+        return create_prediction(
+            db,
+            student_id=student.id,
+            modality="speech",
+            status_value="failed",
+            is_available=False,
+            output_type="machine_learning",
+            source_type="counselor_chat_voice_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+            failure_code="SPEECH_RUNTIME_FAILED",
+            failure_message_safe="Voice-emotion analysis was unavailable; voice message delivery was not blocked.",
+            raw_output_json={"error": exc.__class__.__name__},
+            metadata_json={
+                "source_type": "counselor_chat_voice_message",
+                "source_reference": chat_message.id,
+                "conversation_reference": conversation_id,
+                "analysis_consent_record_id": consent_record_id,
+                "analysis_requested": True,
+                "student_is_audio_speaker": True,
+                "fusion_status": "excluded_runtime_failure",
+                "fusion_eligible": False,
+                "normalized_score": None,
+                "risk_mapping_version": None,
+            },
+            model_registry=active_model,
+            valid_for_hours=None,
+            data_quality_status="corrupt",
+            data_quality_flags=[exc.__class__.__name__],
+        )
+
+    metadata = result.metadata or {}
+    snapshot = create_feature_snapshot(
+        db,
+        student_id=student.id,
+        modality="speech",
+        source_type="counselor_chat_voice_message",
+        source_record_id=chat_message.id,
+        source_timestamp=chat_message.created_at,
+        feature_schema_version=active_model.feature_schema_version or "1.0.0",
+        preprocessing_version=active_model.preprocessing_version or "speech-runtime-v1",
+        features_json=result.features,
+        data_quality_status=metadata.get("data_quality_status") or "accepted",
+        data_quality_flags=metadata.get("data_quality_flags") or [],
+        metadata_json={
+            "audio_container": Path(file_path).suffix.lower().lstrip("."),
+            "original_mime_type": content_type,
+            "feature_shape": metadata.get("feature_shape"),
+        },
+    )
+    return create_prediction(
+        db,
+        student_id=student.id,
+        modality="speech",
+        status_value="succeeded",
+        is_available=True,
+        output_type="machine_learning",
+        source_type="counselor_chat_voice_message",
+        source_record_id=chat_message.id,
+        source_timestamp=chat_message.created_at,
+        feature_snapshot=snapshot,
+        probability=result.probability,
+        confidence=result.confidence,
+        label=result.label,
+        raw_output_json={
+            "emotion_label": result.label,
+            "class_probabilities": result.probabilities,
+            "confidence": result.confidence,
+        },
+        metadata_json={
+            "source_type": "counselor_chat_voice_message",
+            "source_reference": chat_message.id,
+            "conversation_reference": conversation_id,
+            "analysis_consent_record_id": consent_record_id,
+            "analysis_requested": True,
+            "student_is_audio_speaker": True,
+            "emotion_label": result.label,
+            "class_probabilities": result.probabilities,
+            "confidence_band": metadata.get("confidence_band"),
+            "data_quality_status": metadata.get("data_quality_status") or "accepted",
+            "technical_status": "technically_verified_but_fusion_excluded",
+            "fusion_status": SPEECH_RISK_MAPPING_STATUS,
+            "fusion_eligible": False,
+            "normalized_score": None,
+            "risk_mapping_version": None,
+            "limitation": SPEECH_RUNTIME_LIMITATION,
+        },
+        model_registry=active_model,
+        valid_for_hours=24,
+        data_quality_status=metadata.get("data_quality_status") or "accepted",
+        data_quality_flags=metadata.get("data_quality_flags") or [],
+    )
 
 
 def _message_response(message: ChatMessage) -> ChatMessageResponse:
@@ -992,32 +1179,26 @@ def send_voice_message(
     db.add(chat_message)
     db.flush()
     if analyze_emotional_tone:
-        prediction = create_unavailable_prediction(
+        conversation_id = _conversation_pair_id(student.id, counselor.id)
+        prediction = _persist_speech_analysis(
             db,
-            user=current_user,
-            modality="speech",
-            failure_code="MODEL_NOT_ACTIVE",
-            message="The speech runtime model is not active; voice message delivery was not blocked.",
-            source_type="counselor_chat_voice_message",
-            source_record_id=chat_message.id,
-            source_timestamp=chat_message.created_at,
+            chat_message=chat_message,
+            student=current_user,
+            file_path=file_path,
+            content_type=audio.content_type or "",
+            consent_record_id=analysis_consent.id if analysis_consent else None,
+            conversation_id=conversation_id,
         )
         chat_message.ai_prediction_id = prediction.id
-        chat_message.ai_analysis_status = "unavailable"
-        prediction.metadata_json = {
-            **(prediction.metadata_json or {}),
-            "source_type": "counselor_chat_voice_message",
-            "source_reference": chat_message.id,
-            "conversation_reference": _conversation_pair_id(student.id, counselor.id),
-            "analysis_consent_record_id": analysis_consent.id if analysis_consent else None,
-            "analysis_requested": True,
-            "student_is_audio_speaker": True,
-            "mapping_version": "speech_emotion_mapping_v1_not_applied_runtime_inactive",
-            "limitations": [
-                "Voice-emotion analysis is supporting evidence only and not a diagnosis.",
-                "Speech runtime inference is inactive; no emotion label or contribution was generated.",
-            ],
-        }
+        chat_message.ai_analysis_status = (
+            "succeeded"
+            if prediction.status == "succeeded"
+            else "unavailable"
+            if prediction.status == "unavailable"
+            else "failed"
+        )
+        if prediction.status == "succeeded" and (prediction.metadata_json or {}).get("fusion_eligible") is True:
+            trigger_fusion_for_prediction(db, prediction, trigger_source="counselor_chat_voice_analysis", actor=current_user)
     db.commit()
     db.refresh(chat_message)
     

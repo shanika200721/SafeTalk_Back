@@ -25,6 +25,7 @@ from app.models.database_models import (
     User,
     UserRole,
 )
+from app.services.fusion import controlled_fusion_config
 
 
 REVIEW_STATUSES = ("NEW", "UNDER_REVIEW", "FOLLOW_UP_REQUIRED", "REFERRED", "CLOSED")
@@ -32,6 +33,18 @@ MODEL_DISCLAIMER = (
     "AI outputs are screening-support signals only. Counselor review notes, decisions, "
     "and risk judgements are recorded separately and do not overwrite model output."
 )
+DASS21_TOTAL_MAX_SCORE = 126.0
+DASS21_SUBSCALE_MAX_SCORE = 42.0
+CANONICAL_MODALITIES = ("profile", "dass21", "mood", "text", "speech", "face", "behavioral")
+MODALITY_LABELS = {
+    "profile": "Profile",
+    "dass21": "DASS-21",
+    "mood": "Mood",
+    "text": "Text",
+    "speech": "Speech",
+    "face": "Face",
+    "behavioral": "Behavioral",
+}
 
 
 def public_id(prefix: str) -> str:
@@ -40,6 +53,44 @@ def public_id(prefix: str) -> str:
 
 def iso(value):
     return value.isoformat() if value else None
+
+
+def _bounded_percentage(value: float | int | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return round(max(0.0, min(100.0, numeric)), 2)
+
+
+def _score_to_percentage(score_0_100: float | int | None = None, probability: float | int | None = None) -> float | None:
+    if score_0_100 is not None:
+        return _bounded_percentage(score_0_100)
+    if probability is not None:
+        return _bounded_percentage(float(probability) * 100)
+    return None
+
+
+def _dass_percentage(score: float | int | None, max_score: float = DASS21_TOTAL_MAX_SCORE) -> float | None:
+    if score is None:
+        return None
+    try:
+        return _bounded_percentage((float(score) / max_score) * 100)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
+def _risk_assessment_percentage(assessment: RiskAssessment) -> float | None:
+    if assessment.final_score is not None:
+        return _bounded_percentage(assessment.final_score)
+    if assessment.final_probability is not None:
+        return _bounded_percentage(float(assessment.final_probability) * 100)
+    if assessment.model_score is not None:
+        model_score = float(assessment.model_score)
+        return _bounded_percentage(model_score * 100 if model_score <= 1 else model_score)
+    return None
 
 
 def is_admin(user: User) -> bool:
@@ -209,12 +260,14 @@ def serialize_student_row(db: Session, student: User, current_user: User) -> dic
 
 
 def serialize_risk_assessment(assessment: RiskAssessment) -> dict:
+    risk_percentage = _risk_assessment_percentage(assessment)
     return {
         "id": assessment.id,
         "assessment_id": assessment.id,
         "student_id": assessment.student_id,
         "final_probability": assessment.final_probability,
         "final_score": assessment.final_score,
+        "risk_percentage": risk_percentage,
         "risk_level": assessment.risk_level,
         "confidence": assessment.confidence,
         "status": assessment.status,
@@ -233,12 +286,20 @@ def serialize_risk_assessment(assessment: RiskAssessment) -> dict:
 
 
 def serialize_dass(assessment: DASS21Assessment) -> dict:
+    component_percentages = {
+        "depression": _dass_percentage(assessment.depression_score, DASS21_SUBSCALE_MAX_SCORE),
+        "anxiety": _dass_percentage(assessment.anxiety_score, DASS21_SUBSCALE_MAX_SCORE),
+        "stress": _dass_percentage(assessment.stress_score, DASS21_SUBSCALE_MAX_SCORE),
+    }
     return {
         "id": assessment.id,
         "depression_score": assessment.depression_score,
         "anxiety_score": assessment.anxiety_score,
         "stress_score": assessment.stress_score,
         "total_dass21_score": assessment.total_dass21_score,
+        "risk_percentage": _dass_percentage(assessment.total_dass21_score),
+        "overall_percentage": _dass_percentage(assessment.total_dass21_score),
+        "component_percentages": component_percentages,
         "depression_severity": assessment.depression_severity,
         "anxiety_severity": assessment.anxiety_severity,
         "stress_severity": assessment.stress_severity,
@@ -264,10 +325,17 @@ def serialize_prediction(prediction: ModalityPrediction) -> dict:
     return {
         "id": prediction.id,
         "modality": prediction.modality,
+        "modality_label": MODALITY_LABELS.get(prediction.modality, prediction.modality),
         "predicted_class": prediction.predicted_class,
         "probability": prediction.probability,
         "score_0_100": prediction.score_0_100,
+        "risk_percentage": _score_to_percentage(prediction.score_0_100, prediction.probability),
         "confidence": prediction.confidence,
+        "label": prediction.label or prediction.predicted_class,
+        "raw_output": prediction.raw_output_json or {},
+        "metadata": prediction.metadata_json or {},
+        "data_quality_status": prediction.data_quality_status,
+        "data_quality_flags": prediction.data_quality_flags or [],
         "status": prediction.status,
         "is_available": prediction.is_available,
         "output_type": prediction.output_type,
@@ -276,6 +344,69 @@ def serialize_prediction(prediction: ModalityPrediction) -> dict:
         "source_timestamp": iso(prediction.source_timestamp),
         "generated_at": iso(prediction.generated_at),
     }
+
+
+def serialize_model_component_summary(
+    latest: RiskAssessment | None,
+    predictions: list[ModalityPrediction],
+    dass_items: list[DASS21Assessment],
+    profile: ProfileAssessment | None,
+) -> list[dict]:
+    latest_predictions = {}
+    for prediction in predictions:
+        latest_predictions.setdefault(prediction.modality, prediction)
+
+    inputs_by_modality = {}
+    if latest:
+        for item in latest.inputs:
+            if item.modality:
+                inputs_by_modality[item.modality] = item
+
+    latest_dass_item = dass_items[0] if dass_items else None
+    base_weights = controlled_fusion_config()["base_weights"]
+    rows = []
+    for modality in CANONICAL_MODALITIES:
+        fusion_input = inputs_by_modality.get(modality)
+        prediction = fusion_input.modality_prediction if fusion_input and fusion_input.modality_prediction else latest_predictions.get(modality)
+        risk_percentage = _score_to_percentage(
+            prediction.score_0_100 if prediction else None,
+            prediction.probability if prediction else None,
+        )
+        if risk_percentage is None and fusion_input and fusion_input.mapped_score is not None:
+            risk_percentage = _bounded_percentage(fusion_input.mapped_score * 100)
+        if risk_percentage is None and modality == "dass21" and latest_dass_item:
+            risk_percentage = _dass_percentage(latest_dass_item.total_dass21_score)
+        if risk_percentage is None and modality == "profile" and profile:
+            risk_percentage = _bounded_percentage(profile.profile_score)
+
+        contribution = None
+        if fusion_input and fusion_input.included and fusion_input.mapped_score is not None and fusion_input.effective_weight is not None:
+            contribution = _bounded_percentage(fusion_input.mapped_score * fusion_input.effective_weight * 100)
+
+        rows.append(
+            {
+                "modality": modality,
+                "label": MODALITY_LABELS.get(modality, modality),
+                "status": prediction.status if prediction else "missing",
+                "risk_percentage": risk_percentage,
+                "component_percentage": risk_percentage,
+                "contribution_percentage": contribution,
+                "base_weight_percentage": _bounded_percentage(
+                    (fusion_input.base_weight if fusion_input and fusion_input.base_weight is not None else base_weights.get(modality, 0.0)) * 100
+                ),
+                "effective_weight_percentage": _bounded_percentage(fusion_input.effective_weight * 100)
+                if fusion_input and fusion_input.effective_weight is not None
+                else None,
+                "included": bool(fusion_input and fusion_input.included),
+                "source_timestamp": iso(fusion_input.source_timestamp if fusion_input else (prediction.source_timestamp if prediction else None)),
+                "generated_at": iso(prediction.generated_at) if prediction else None,
+                "evidence_id": prediction.id if prediction else None,
+                "reason": None
+                if fusion_input and fusion_input.included
+                else (fusion_input.exclusion_reason if fusion_input else "not_in_latest_fusion"),
+            }
+        )
+    return rows
 
 
 def serialize_review(review: CounselorReview) -> dict:
@@ -385,6 +516,7 @@ def student_detail(db: Session, student_id: int, current_user: User) -> dict:
         else None,
         "latest_assessment": serialize_risk_assessment(latest) if latest else None,
         "latest_risk_assessment": serialize_risk_assessment(latest) if latest else None,
+        "model_component_summary": serialize_model_component_summary(latest, predictions, dass_items, profile),
         "assessments": [serialize_risk_assessment(a) for a in assessments],
         "dass21_assessments": [serialize_dass(a) for a in dass_items],
         "dass21_scores": serialize_dass(dass_items[0]) if dass_items else None,
@@ -537,6 +669,37 @@ def report_csv(payload: dict) -> str:
     writer.writerow(["student", "", "name", student["full_name"]])
     writer.writerow(["student", "", "email", student["email"]])
     writer.writerow(["disclaimer", "", "model_disclaimer", payload["model_disclaimer"]])
+    latest = payload.get("latest_assessment") or {}
+    writer.writerow(["summary", latest.get("created_at"), "risk_status", latest.get("risk_level") or latest.get("model_risk_level") or "N/A"])
+    writer.writerow(["summary", latest.get("created_at"), "final_risk_percentage", latest.get("risk_percentage")])
+    for component in payload.get("model_component_summary", []):
+        writer.writerow(
+            [
+                "model_component",
+                component.get("source_timestamp") or component.get("generated_at"),
+                component.get("label") or component.get("modality"),
+                {
+                    "risk_percentage": component.get("risk_percentage"),
+                    "contribution_percentage": component.get("contribution_percentage"),
+                    "effective_weight_percentage": component.get("effective_weight_percentage"),
+                    "status": component.get("status"),
+                    "included": component.get("included"),
+                },
+            ]
+        )
+    for assessment in payload.get("dass21_assessments", []):
+        writer.writerow(
+            [
+                "dass21",
+                assessment.get("created_at"),
+                "overall_risk_percentage",
+                {
+                    "risk_percentage": assessment.get("risk_percentage"),
+                    "total_dass21_score": assessment.get("total_dass21_score"),
+                    "component_percentages": assessment.get("component_percentages"),
+                },
+            ]
+        )
     for item in payload["timeline"]:
         writer.writerow([item["type"], item["timestamp"], item["label"], item["data"]])
     return output.getvalue()
@@ -558,8 +721,34 @@ def report_pdf_bytes(payload: dict) -> bytes:
     lines.extend(
         [
             f"Risk level: {latest.get('risk_level') or latest.get('model_risk_level') or 'N/A'}",
+            f"Final risk percentage: {latest.get('risk_percentage') if latest.get('risk_percentage') is not None else 'N/A'}%",
             f"Fusion score: {latest.get('final_score') or latest.get('model_score') or 'N/A'}",
             f"Evidence coverage: {latest.get('evidence_coverage') or 'N/A'}",
+            "",
+            "Seven-Model Component Summary",
+        ]
+    )
+    for component in payload.get("model_component_summary", [])[:7]:
+        risk_percentage = component.get("risk_percentage")
+        contribution = component.get("contribution_percentage")
+        lines.append(
+            f"{component.get('label') or component.get('modality')}: "
+            f"{risk_percentage if risk_percentage is not None else 'N/A'}% "
+            f"({component.get('status')}, contribution {contribution if contribution is not None else 'N/A'}%)"
+        )
+    lines.extend(
+        [
+            "",
+            "DASS-21 Risk History",
+        ]
+    )
+    for assessment in payload.get("dass21_assessments", [])[:10]:
+        lines.append(
+            f"{assessment.get('created_at')} - risk {assessment.get('risk_percentage') if assessment.get('risk_percentage') is not None else 'N/A'}% "
+            f"- total {assessment.get('total_dass21_score')}"
+        )
+    lines.extend(
+        [
             "",
             "Review History",
         ]

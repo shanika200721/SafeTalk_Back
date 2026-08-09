@@ -779,6 +779,9 @@ class RiskAssessment(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     fusion_model_id = Column(Integer, ForeignKey("model_registry.id", ondelete="RESTRICT"), nullable=True)
+    trigger_source = Column(String, nullable=True)
+    trigger_prediction_id = Column(Integer, ForeignKey("modality_predictions.id", ondelete="SET NULL"), nullable=True)
+    trigger_metadata_json = Column(JSON, nullable=True)
     final_probability = Column(Float, nullable=True)
     final_score = Column(Float, nullable=True)
     risk_level = Column(String, nullable=True)
@@ -819,6 +822,7 @@ class RiskAssessment(Base):
 
     student = relationship("User", back_populates="risk_assessments")
     fusion_model = relationship("ModelRegistry", back_populates="fused_risk_assessments")
+    trigger_prediction = relationship("ModalityPrediction", foreign_keys=[trigger_prediction_id])
     inputs = relationship("RiskAssessmentInput", back_populates="risk_assessment")
 
 

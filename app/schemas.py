@@ -457,6 +457,12 @@ class FusionInputEvidence(BaseModel):
     prediction_age_seconds: Optional[float] = None
 
 
+class FusionTriggerInfo(BaseModel):
+    source: Optional[str] = None
+    prediction_id: Optional[int] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class ControlledFusionAssessmentResponse(BaseModel):
     assessment_id: Optional[int] = None
     user_id: int
@@ -464,6 +470,7 @@ class ControlledFusionAssessmentResponse(BaseModel):
     score: Optional[float] = Field(default=None, ge=0, le=1)
     risk_level: Optional[str] = None
     assessment_type: str = "screening_support"
+    trigger: Optional[FusionTriggerInfo] = None
     fusion: FusionVersionInfo
     evidence: FusionEvidence
     inputs: List[FusionInputEvidence]

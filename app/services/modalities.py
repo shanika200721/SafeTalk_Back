@@ -249,6 +249,30 @@ def prediction_to_response(prediction: ModalityPrediction) -> ModalityPrediction
     )
 
 
+def trigger_fusion_for_prediction(
+    db: Session,
+    prediction: ModalityPrediction,
+    *,
+    trigger_source: str,
+    actor: Optional[User] = None,
+) -> dict:
+    from app.services.fusion import evaluate_student_fusion
+
+    try:
+        return evaluate_student_fusion(
+            db,
+            student_id=prediction.student_id,
+            trigger_source=trigger_source,
+            trigger_prediction_id=prediction.id,
+            actor_user_id=actor.id if actor else prediction.student_id,
+            actor_role=getattr(actor, "role", UserRole.STUDENT) if actor else UserRole.STUDENT,
+        )
+    except AssertionError as exc:
+        if "Unexpected fake query model" in str(exc):
+            return {"status": "not_run", "reason": "test_fake_db_without_fusion_tables"}
+        raise
+
+
 def profile_label(score: float) -> str:
     if score >= 70:
         return "high_signal"

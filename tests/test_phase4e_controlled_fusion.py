@@ -9,9 +9,9 @@ from sqlalchemy.pool import StaticPool
 from app.database import get_db
 from app.db.base import Base
 from app.main import app
-from app.models.database_models import Alert, Assessment, FeatureSnapshot, ModalityPrediction, RiskAssessment, RiskAssessmentInput, User, UserRole
+from app.models.database_models import Alert, Assessment, ConsentRecord, FeatureSnapshot, ModalityPrediction, RiskAssessment, RiskAssessmentInput, User, UserRole
 from app.security import hash_password
-from app.services.fusion import controlled_fusion_config, run_controlled_fusion
+from app.services.fusion import controlled_fusion_config, evaluate_student_fusion, run_controlled_fusion
 
 
 FROZEN_NOW = datetime(2026, 7, 25, 12, 0, tzinfo=timezone.utc)
@@ -76,6 +76,20 @@ def auth_headers(client, username):
     response = client.post("/api/auth/login", json={"username": username, "password": "Password123!"})
     assert response.status_code == 200
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def grant_consent(db_session, user, consent_type):
+    record = ConsentRecord(
+        user_id=user.id,
+        consent_type=consent_type,
+        is_granted=True,
+        policy_version="phase4n-test",
+        granted_at=FROZEN_NOW.replace(tzinfo=None),
+        source="test",
+    )
+    db_session.add(record)
+    db_session.commit()
+    return record
 
 
 def add_prediction(
@@ -249,6 +263,53 @@ def test_persistence_records_inputs_versions_and_no_alerts(db_session):
     assert any(item["included"] is False for item in result["inputs"])
     assert db_session.query(Assessment).count() == 0
     assert db_session.query(Alert).count() == 0
+
+
+def test_evaluate_student_fusion_is_idempotent_for_same_trigger_prediction(db_session):
+    user = create_user(db_session, "idempotent")
+    seed_four_valid_modalities(db_session, user)
+    trigger = (
+        db_session.query(ModalityPrediction)
+        .filter(ModalityPrediction.student_id == user.id, ModalityPrediction.modality == "text")
+        .one()
+    )
+
+    first = evaluate_student_fusion(
+        db_session,
+        student_id=user.id,
+        trigger_source="test_trigger",
+        trigger_prediction_id=trigger.id,
+        assessment_time=FROZEN_NOW,
+    )
+    second = evaluate_student_fusion(
+        db_session,
+        student_id=user.id,
+        trigger_source="test_trigger",
+        trigger_prediction_id=trigger.id,
+        assessment_time=FROZEN_NOW,
+    )
+
+    assert first["assessment_id"] == second["assessment_id"]
+    assert db_session.query(RiskAssessment).count() == 1
+    assessment = db_session.query(RiskAssessment).one()
+    assert assessment.trigger_source == "test_trigger"
+    assert assessment.trigger_prediction_id == trigger.id
+
+
+def test_dass21_prediction_route_triggers_persisted_fusion(client, db_session):
+    student = create_user(db_session, "routefusion")
+    grant_consent(db_session, student, "dass21_processing")
+    headers = auth_headers(client, student.username)
+
+    response = client.post("/api/modalities/dass21/predict", json={"responses": [1] * 21}, headers=headers)
+
+    assert response.status_code == 200
+    prediction_id = response.json()["prediction_id"]
+    assessment = db_session.query(RiskAssessment).one()
+    assert assessment.trigger_source == "modality_dass21_predict"
+    assert assessment.trigger_prediction_id == prediction_id
+    assert assessment.status == "insufficient_evidence"
+    assert assessment.final_probability is None
 
 
 def test_staleness_boundary_and_invalid_profile_output_type(db_session):

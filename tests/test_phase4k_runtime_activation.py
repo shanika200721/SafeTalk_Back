@@ -252,7 +252,7 @@ def test_runtime_status_admin_only_and_no_sensitive_content(client, db_session):
     assert "sensitive source content" in payload["privacy"].lower()
 
 
-def test_fusion_includes_only_eligible_speech_and_excludes_unverified_face(db_session):
+def test_fusion_excludes_speech_without_verified_registry_and_mapping_and_excludes_unverified_face(db_session):
     student = create_user(db_session, "fusion-phase4k")
     now = datetime.utcnow()
     for modality, score, source_type in [
@@ -301,6 +301,7 @@ def test_fusion_includes_only_eligible_speech_and_excludes_unverified_face(db_se
     used = set(result["evidence"]["used_modalities"])
     excluded = {(item["modality"], item["reason"]) for item in result["evidence"]["excluded_modalities"]}
 
-    assert "speech" in used
+    assert "speech" not in used
+    assert ("speech", "runtime_model_not_verified_for_fusion") in excluded
     assert ("face", "insufficient_model_reliability") in excluded
     assert "behavioral" in result["evidence"]["missing_modalities"] or any(item["modality"] == "behavioral" for item in result["evidence"]["excluded_modalities"])

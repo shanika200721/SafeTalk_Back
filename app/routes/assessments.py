@@ -28,6 +28,7 @@ from app.services.modalities import (
     create_profile_prediction_for_assessment,
     dass21_metadata_dict,
     populate_dass21_metadata,
+    trigger_fusion_for_prediction,
 )
 
 router = APIRouter(prefix="/api/assessments", tags=["Assessments"])
@@ -68,6 +69,8 @@ def _dass21_alert_level(assessment: DASS21Assessment) -> str:
 def _create_dass21_submission_alert(db: Session, assessment: DASS21Assessment, *, updated: bool = False) -> None:
     action = "updated" if updated else "submitted"
     level = _dass21_alert_level(assessment)
+    if level == "LOW":
+        return
     db.add(
         Alert(
             user_id=assessment.user_id,
@@ -111,19 +114,19 @@ def create_profile_assessment(
         for key, value in profile_dict.items():
             if key != 'user_id':
                 setattr(existing, key, value)
-        db.commit()
+        db.flush()
+        prediction = create_profile_prediction_for_assessment(db, existing)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="legacy_profile_assessment", actor=current_user)
         db.refresh(existing)
-        create_profile_prediction_for_assessment(db, existing)
-        db.commit()
         return existing
     else:
         # Create new
         db_assessment = ProfileAssessment(**profile_dict)
         db.add(db_assessment)
-        db.commit()
+        db.flush()
+        prediction = create_profile_prediction_for_assessment(db, db_assessment)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="legacy_profile_assessment", actor=current_user)
         db.refresh(db_assessment)
-        create_profile_prediction_for_assessment(db, db_assessment)
-        db.commit()
         return db_assessment
 
 @router.get("/profile/{user_id}", response_model=ProfileAssessmentSchema)
@@ -200,9 +203,9 @@ def create_dass21_assessment(
         
         db.add(db_assessment)
         db.flush()
-        create_dass21_prediction_for_assessment(db, db_assessment)
+        prediction = create_dass21_prediction_for_assessment(db, db_assessment)
         _create_dass21_submission_alert(db, db_assessment)
-        db.commit()
+        trigger_fusion_for_prediction(db, prediction, trigger_source="dass21_submission", actor=current_user)
         db.refresh(db_assessment)
         
         return _dass21_response(db_assessment)
@@ -355,9 +358,9 @@ def update_dass21_assessment(
         populate_dass21_metadata(assessment)
         
         db.flush()
-        create_dass21_prediction_for_assessment(db, assessment)
+        prediction = create_dass21_prediction_for_assessment(db, assessment)
         _create_dass21_submission_alert(db, assessment, updated=True)
-        db.commit()
+        trigger_fusion_for_prediction(db, prediction, trigger_source="dass21_update", actor=current_user)
         db.refresh(assessment)
         
         return _dass21_response(assessment)

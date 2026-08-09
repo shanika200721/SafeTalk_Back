@@ -30,6 +30,7 @@ from app.services.modalities import (
     create_prediction,
     create_failed_prediction,
     create_unavailable_prediction,
+    trigger_fusion_for_prediction,
 )
 
 router = APIRouter(prefix="/api/student", tags=["Student Wellness"])
@@ -822,6 +823,7 @@ def _analyze_journal_if_permitted(db: Session, user: User, entry: JournalEntry) 
         )
         entry.analysis_status = "unavailable"
         entry.metadata_json = {**(entry.metadata_json or {}), "latest_prediction_id": prediction.id}
+        trigger_fusion_for_prediction(db, prediction, trigger_source="journal_text_analysis", actor=user)
         return
     if len((entry.body or "").strip()) < 20:
         prediction = create_unavailable_prediction(
@@ -836,6 +838,7 @@ def _analyze_journal_if_permitted(db: Session, user: User, entry: JournalEntry) 
         )
         entry.analysis_status = "unavailable"
         entry.metadata_json = {**(entry.metadata_json or {}), "latest_prediction_id": prediction.id}
+        trigger_fusion_for_prediction(db, prediction, trigger_source="journal_text_analysis", actor=user)
         return
 
     snapshot = create_feature_snapshot(
@@ -908,6 +911,7 @@ def _analyze_journal_if_permitted(db: Session, user: User, entry: JournalEntry) 
         )
         entry.analysis_status = "failed"
     entry.metadata_json = {**(entry.metadata_json or {}), "latest_prediction_id": prediction.id}
+    trigger_fusion_for_prediction(db, prediction, trigger_source="journal_text_analysis", actor=user)
 
 
 @router.get("/preferences")
