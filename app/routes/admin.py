@@ -288,10 +288,14 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
             "predictions_last_24h": int(predictions_last_24h or 0),
             "average_inference_duration": None,
             "fusion_eligibility": fusion_eligible,
+            "fusion_exclusion_reason": failure_reason,
             "fusion_status": fusion_status,
+            "risk_mapping_status": "validated" if fusion_eligible else "no_validated_risk_mapping",
             "health_state": "verified_active" if fusion_eligible else "active_fusion_excluded",
+            "technical_runtime": technical_status,
             "technical_status": technical_status,
             "research_reliability": research_reliability,
+            "calibration_version": "runtime-mapping-v1" if fusion_eligible else None,
             "limitations": [
                 "Deterministic or contextual runtime module; not represented as a trained serialized ML artifact."
             ],
@@ -315,10 +319,14 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
             "predictions_last_24h": int(predictions_last_24h or 0),
             "average_inference_duration": None,
             "fusion_eligibility": False,
+            "fusion_exclusion_reason": blocking_reason,
             "fusion_status": "excluded_no_validated_model",
+            "risk_mapping_status": "not_available",
             "health_state": "unavailable",
+            "technical_runtime": "unavailable",
             "technical_status": "unavailable",
             "research_reliability": "not_evaluated" if modality == "behavioral" else "experimental",
+            "calibration_version": None,
         }
     artifact_available = False
     hash_valid = False
@@ -369,12 +377,18 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
     if model.modality == "speech":
         fusion_eligible = False
         fusion_status = "excluded_no_approved_risk_mapping"
+        risk_mapping_status = "no_approved_risk_mapping"
+        fusion_exclusion_reason = fusion_status
     elif model.modality == "face":
         fusion_eligible = False
         fusion_status = "excluded_low_reliability"
+        risk_mapping_status = "no_validated_risk_mapping"
+        fusion_exclusion_reason = "excluded_low_reliability_and_no_risk_mapping"
     else:
         fusion_eligible = model.modality in {"profile", "text"} and model.is_active and activation_eligible
         fusion_status = "eligible" if fusion_eligible else "excluded"
+        risk_mapping_status = "validated" if fusion_eligible else "not_active"
+        fusion_exclusion_reason = None if fusion_eligible else (failure_reason or "not_active_or_not_verified")
     return {
         "modality": modality,
         "model_id": model.id,
@@ -402,10 +416,14 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         "predictions_last_24h": int(predictions_last_24h or 0),
         "average_inference_duration": None,
         "fusion_eligibility": fusion_eligible,
+        "fusion_exclusion_reason": fusion_exclusion_reason,
         "fusion_status": fusion_status,
+        "risk_mapping_status": risk_mapping_status,
         "health_state": health_state,
+        "technical_runtime": technical_status,
         "technical_status": technical_status,
         "research_reliability": research_reliability,
+        "calibration_version": "runtime-mapping-v1" if fusion_eligible else None,
         "limitations": model.limitations_json or [],
     }
 

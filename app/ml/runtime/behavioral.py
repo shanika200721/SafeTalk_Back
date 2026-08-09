@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.database_models import ChatMessage, DailyCheckIn, JournalEntry, User
+from app.models.database_models import BehavioralTelemetryEvent, ChatMessage, DailyCheckIn, JournalEntry, User
 
 
 BEHAVIORAL_MODEL_NAME = "behavioral-personal-baseline-anomaly"
@@ -34,11 +34,25 @@ def _count_between(query, column, start: datetime, end: datetime) -> int:
     return int(query.filter(column >= start, column < end).count())
 
 
+def _sum_between(query, column, timestamp_column, start: datetime, end: datetime) -> float:
+    rows = query.filter(timestamp_column >= start, timestamp_column < end).all()
+    return float(sum(float(getattr(item, column.key) or 0.0) for item in rows))
+
+
+def _mean_between(query, column, timestamp_column, start: datetime, end: datetime) -> float | None:
+    values = [
+        float(getattr(item, column.key))
+        for item in query.filter(timestamp_column >= start, timestamp_column < end).all()
+        if getattr(item, column.key) is not None
+    ]
+    return float(sum(values) / len(values)) if values else None
+
+
 def aggregate_behavioral_features(db: Session, user: User, *, now: datetime | None = None) -> dict[str, Any]:
     """Aggregate only persisted, privacy-preserving behavioral fields.
 
-    This intentionally avoids typing cadence, pointer movement, and response latency because this
-    application does not persist those telemetry fields.
+    The optional telemetry channel stores only aggregate timing/count summaries.
+    It never stores raw keystroke contents or pointer paths.
     """
 
     now = now or datetime.utcnow()
@@ -49,6 +63,7 @@ def aggregate_behavioral_features(db: Session, user: User, *, now: datetime | No
     journals = db.query(JournalEntry).filter(JournalEntry.student_id == user.id, JournalEntry.deleted_at.is_(None))
     sent_messages = db.query(ChatMessage).filter(ChatMessage.sender_id == user.id)
     received_messages = db.query(ChatMessage).filter(ChatMessage.receiver_id == user.id)
+    telemetry = db.query(BehavioralTelemetryEvent).filter(BehavioralTelemetryEvent.student_id == user.id)
 
     recent_checkins = _count_between(checkins, DailyCheckIn.created_at, recent_start, now)
     baseline_checkins = _count_between(checkins, DailyCheckIn.created_at, baseline_start, recent_start)
@@ -58,6 +73,32 @@ def aggregate_behavioral_features(db: Session, user: User, *, now: datetime | No
     baseline_sent_messages = _count_between(sent_messages, ChatMessage.created_at, baseline_start, recent_start)
     recent_received_messages = _count_between(received_messages, ChatMessage.created_at, recent_start, now)
     baseline_received_messages = _count_between(received_messages, ChatMessage.created_at, baseline_start, recent_start)
+    recent_telemetry_events = _count_between(telemetry, BehavioralTelemetryEvent.created_at, recent_start, now)
+    baseline_telemetry_events = _count_between(telemetry, BehavioralTelemetryEvent.created_at, baseline_start, recent_start)
+    recent_session_duration_seconds = _sum_between(
+        telemetry, BehavioralTelemetryEvent.session_duration_seconds, BehavioralTelemetryEvent.created_at, recent_start, now
+    )
+    baseline_session_duration_seconds = _sum_between(
+        telemetry, BehavioralTelemetryEvent.session_duration_seconds, BehavioralTelemetryEvent.created_at, baseline_start, recent_start
+    )
+    recent_interaction_count = int(
+        _sum_between(telemetry, BehavioralTelemetryEvent.interaction_count, BehavioralTelemetryEvent.created_at, recent_start, now)
+    )
+    baseline_interaction_count = int(
+        _sum_between(telemetry, BehavioralTelemetryEvent.interaction_count, BehavioralTelemetryEvent.created_at, baseline_start, recent_start)
+    )
+    recent_typing_active_ms = _sum_between(
+        telemetry, BehavioralTelemetryEvent.typing_active_ms, BehavioralTelemetryEvent.created_at, recent_start, now
+    )
+    baseline_typing_active_ms = _sum_between(
+        telemetry, BehavioralTelemetryEvent.typing_active_ms, BehavioralTelemetryEvent.created_at, baseline_start, recent_start
+    )
+    recent_response_latency_ms_mean = _mean_between(
+        telemetry, BehavioralTelemetryEvent.response_latency_ms, BehavioralTelemetryEvent.created_at, recent_start, now
+    )
+    baseline_response_latency_ms_mean = _mean_between(
+        telemetry, BehavioralTelemetryEvent.response_latency_ms, BehavioralTelemetryEvent.created_at, baseline_start, recent_start
+    )
 
     last_activity_candidates = [value for value in [user.last_login_at] if value is not None]
     latest_checkin = checkins.order_by(DailyCheckIn.created_at.desc()).first()
@@ -84,6 +125,16 @@ def aggregate_behavioral_features(db: Session, user: User, *, now: datetime | No
         "baseline_sent_chat_messages": baseline_sent_messages,
         "recent_received_chat_messages": recent_received_messages,
         "baseline_received_chat_messages": baseline_received_messages,
+        "recent_telemetry_events": recent_telemetry_events,
+        "baseline_telemetry_events": baseline_telemetry_events,
+        "recent_session_duration_seconds": round(recent_session_duration_seconds, 4),
+        "baseline_session_duration_seconds": round(baseline_session_duration_seconds, 4),
+        "recent_interaction_count": recent_interaction_count,
+        "baseline_interaction_count": baseline_interaction_count,
+        "recent_typing_active_ms": round(recent_typing_active_ms, 4),
+        "baseline_typing_active_ms": round(baseline_typing_active_ms, 4),
+        "recent_response_latency_ms_mean": round(recent_response_latency_ms_mean, 4) if recent_response_latency_ms_mean is not None else None,
+        "baseline_response_latency_ms_mean": round(baseline_response_latency_ms_mean, 4) if baseline_response_latency_ms_mean is not None else None,
         "has_login_timestamp": user.last_login_at is not None,
         "days_since_last_activity": round(days_since_last_activity, 4) if days_since_last_activity is not None else None,
         "last_activity_at": last_activity_at.isoformat() if last_activity_at else None,
@@ -103,6 +154,21 @@ def score_behavioral_anomaly(features: dict[str, Any]) -> BehavioralSignal:
     journal_drop = _drop_score(features["recent_journal_entries"], features["baseline_journal_entries"])
     sent_drop = _drop_score(features["recent_sent_chat_messages"], features["baseline_sent_chat_messages"])
     received_drop = _drop_score(features["recent_received_chat_messages"], features["baseline_received_chat_messages"])
+    telemetry_drop = _drop_score(features["recent_telemetry_events"], features["baseline_telemetry_events"])
+    session_duration_drop = _drop_score(
+        int(features["recent_session_duration_seconds"] // 60),
+        int(features["baseline_session_duration_seconds"] // 60),
+    )
+    interaction_drop = _drop_score(features["recent_interaction_count"], features["baseline_interaction_count"])
+    typing_drop = _drop_score(
+        int(features["recent_typing_active_ms"] // 1000),
+        int(features["baseline_typing_active_ms"] // 1000),
+    )
+    latency_component = 0.0
+    recent_latency = features.get("recent_response_latency_ms_mean")
+    baseline_latency = features.get("baseline_response_latency_ms_mean")
+    if recent_latency is not None and baseline_latency is not None and baseline_latency >= 100:
+        latency_component = min(1.0, max(0.0, (float(recent_latency) - float(baseline_latency)) / max(float(baseline_latency), 1.0)))
     inactivity_days = features.get("days_since_last_activity")
     inactivity_component = 0.0 if inactivity_days is None else min(1.0, max(0.0, (float(inactivity_days) - 3.0) / 11.0))
 
@@ -111,12 +177,16 @@ def score_behavioral_anomaly(features: dict[str, Any]) -> BehavioralSignal:
         + features["baseline_journal_entries"]
         + features["baseline_sent_chat_messages"]
         + features["baseline_received_chat_messages"]
+        + features["baseline_telemetry_events"]
+        + int(features["baseline_session_duration_seconds"] > 0)
+        + int(features["baseline_interaction_count"] > 0)
     )
     recent_points = (
         features["recent_checkins"]
         + features["recent_journal_entries"]
         + features["recent_sent_chat_messages"]
         + features["recent_received_chat_messages"]
+        + features["recent_telemetry_events"]
         + int(bool(features.get("has_login_timestamp")))
     )
     if historical_points >= 6:
@@ -130,10 +200,15 @@ def score_behavioral_anomaly(features: dict[str, Any]) -> BehavioralSignal:
         confidence = 0.15
 
     anomaly_0_1 = (
-        0.35 * checkin_drop
-        + 0.20 * journal_drop
-        + 0.20 * sent_drop
-        + 0.10 * received_drop
+        0.25 * checkin_drop
+        + 0.15 * journal_drop
+        + 0.15 * sent_drop
+        + 0.08 * received_drop
+        + 0.12 * telemetry_drop
+        + 0.08 * session_duration_drop
+        + 0.07 * interaction_drop
+        + 0.03 * typing_drop
+        + 0.02 * latency_component
         + 0.15 * inactivity_component
     )
     anomaly_score = round(max(0.0, min(100.0, anomaly_0_1 * 100.0)), 2)
@@ -150,12 +225,18 @@ def score_behavioral_anomaly(features: dict[str, Any]) -> BehavioralSignal:
             "daily_checkins.created_at",
             "journal_entries.created_at",
             "chat_messages.sender_id/receiver_id/created_at",
+            "behavioral_telemetry_events.session_duration_seconds",
+            "behavioral_telemetry_events.interaction_count",
+            "behavioral_telemetry_events.response_latency_ms",
+            "behavioral_telemetry_events.typing_active_ms",
+            "behavioral_telemetry_events.typing_pause_count",
+            "behavioral_telemetry_events.typed_character_count",
         ],
         "fields_not_available": [
             "typing_speed_cpm",
+            "raw_keystroke_content",
+            "raw_mouse_path",
             "mouse_distance_px",
-            "response_latency_ms",
-            "session_duration_seconds",
         ],
         "algorithm": "recent_7_day_activity_drop_against_previous_21_day_personal_baseline_plus_inactivity",
         "risk_mapping_status": BEHAVIORAL_RISK_MAPPING_STATUS,
@@ -168,6 +249,11 @@ def score_behavioral_anomaly(features: dict[str, Any]) -> BehavioralSignal:
             "journal_drop_component": round(journal_drop, 6),
             "sent_chat_drop_component": round(sent_drop, 6),
             "received_chat_drop_component": round(received_drop, 6),
+            "telemetry_event_drop_component": round(telemetry_drop, 6),
+            "session_duration_drop_component": round(session_duration_drop, 6),
+            "interaction_drop_component": round(interaction_drop, 6),
+            "typing_activity_drop_component": round(typing_drop, 6),
+            "response_latency_increase_component": round(latency_component, 6),
             "inactivity_component": round(inactivity_component, 6),
         },
         anomaly_score=anomaly_score,

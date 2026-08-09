@@ -54,6 +54,7 @@ class User(Base):
     modality_predictions = relationship("ModalityPrediction", back_populates="student")
     risk_assessments = relationship("RiskAssessment", back_populates="student")
     consent_records = relationship("ConsentRecord", back_populates="user")
+    behavioral_telemetry_events = relationship("BehavioralTelemetryEvent", back_populates="student")
     university = relationship("University", back_populates="users")
     counselor_assignments_as_student = relationship(
         "CounselorAssignment",
@@ -698,6 +699,41 @@ class FeatureSnapshot(Base):
 
     student = relationship("User", back_populates="feature_snapshots")
     predictions = relationship("ModalityPrediction", back_populates="feature_snapshot")
+
+
+class BehavioralTelemetryEvent(Base):
+    __tablename__ = "behavioral_telemetry_events"
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('session_summary', 'interaction_summary', 'response_summary', 'typing_summary')",
+            name="ck_behavioral_telemetry_event_type",
+        ),
+        CheckConstraint("session_duration_seconds IS NULL OR session_duration_seconds >= 0", name="ck_behavioral_telemetry_session_duration_nonnegative"),
+        CheckConstraint("interaction_count IS NULL OR interaction_count >= 0", name="ck_behavioral_telemetry_interaction_count_nonnegative"),
+        CheckConstraint("response_latency_ms IS NULL OR response_latency_ms >= 0", name="ck_behavioral_telemetry_response_latency_nonnegative"),
+        CheckConstraint("typing_active_ms IS NULL OR typing_active_ms >= 0", name="ck_behavioral_telemetry_typing_active_nonnegative"),
+        CheckConstraint("typing_pause_count IS NULL OR typing_pause_count >= 0", name="ck_behavioral_telemetry_typing_pause_nonnegative"),
+        CheckConstraint("typed_character_count IS NULL OR typed_character_count >= 0", name="ck_behavioral_telemetry_typed_chars_nonnegative"),
+        Index("ix_behavioral_telemetry_student_created", "student_id", "created_at"),
+        Index("ix_behavioral_telemetry_student_event", "student_id", "event_type", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    event_type = Column(String, nullable=False)
+    source_page = Column(String, nullable=True)
+    session_id = Column(String, nullable=True)
+    session_duration_seconds = Column(Float, nullable=True)
+    interaction_count = Column(Integer, nullable=True)
+    response_latency_ms = Column(Float, nullable=True)
+    typing_active_ms = Column(Float, nullable=True)
+    typing_pause_count = Column(Integer, nullable=True)
+    typed_character_count = Column(Integer, nullable=True)
+    metadata_json = Column(JSON, nullable=True)
+    consent_policy_version = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    student = relationship("User", back_populates="behavioral_telemetry_events")
 
 
 class ModalityPrediction(Base):

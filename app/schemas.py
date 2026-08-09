@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List, Dict, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -297,6 +297,36 @@ class FacePredictionRequest(BaseModel):
 
 class BehavioralPredictionRequest(BaseModel):
     pass
+
+
+class BehavioralTelemetryRequest(BaseModel):
+    event_type: Literal["session_summary", "interaction_summary", "response_summary", "typing_summary"]
+    source_page: Optional[str] = Field(default=None, max_length=120)
+    session_id: Optional[str] = Field(default=None, max_length=120)
+    session_duration_seconds: Optional[float] = Field(default=None, ge=0, le=86400)
+    interaction_count: Optional[int] = Field(default=None, ge=0, le=10000)
+    response_latency_ms: Optional[float] = Field(default=None, ge=0, le=600000)
+    typing_active_ms: Optional[float] = Field(default=None, ge=0, le=86400000)
+    typing_pause_count: Optional[int] = Field(default=None, ge=0, le=10000)
+    typed_character_count: Optional[int] = Field(default=None, ge=0, le=100000)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("metadata")
+    @classmethod
+    def sanitize_raw_behavioral_payloads(cls, value):
+        prohibited = {"text", "raw_text", "keystrokes", "key_events", "mouse_path", "pointer_path", "coordinates"}
+        return {key: item for key, item in value.items() if str(key).lower() not in prohibited}
+
+
+class BehavioralTelemetryResponse(BaseModel):
+    id: int
+    user_id: int
+    event_type: str
+    source_page: Optional[str] = None
+    session_id: Optional[str] = None
+    consent_policy_version: str
+    created_at: datetime
+    stored_fields: List[str]
 
 # ============= Profile Assessment Schemas =============
 class ProfileAssessmentBase(BaseModel):

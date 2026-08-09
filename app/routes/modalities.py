@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import (
+    BehavioralTelemetryEvent,
     DASS21Assessment,
     DailyCheckIn,
     FeatureSnapshot,
@@ -15,6 +16,8 @@ from app.models.database_models import (
 from app.routes.auth import get_current_user
 from app.schemas import (
     BehavioralPredictionRequest,
+    BehavioralTelemetryRequest,
+    BehavioralTelemetryResponse,
     CanonicalModality,
     DASS21PredictionRequest,
     FacePredictionRequest,
@@ -32,7 +35,7 @@ from app.ml.runtime.registry import predict_with_active_model
 from app.ml.runtime.speech import SPEECH_RISK_MAPPING_STATUS, SPEECH_RUNTIME_LIMITATION
 from app.ml.runtime.speech_preprocessor import SpeechPreprocessingError, validate_speech_audio_quality
 from app.services.model_registry import get_active_model
-from app.services.consent import require_active_consent
+from app.services.consent import CURRENT_POLICY_VERSION, require_active_consent
 from app.services.modalities import (
     MODALITY_CONSENT_TYPES,
     MODEL_EVIDENCE,
@@ -607,6 +610,63 @@ def predict_behavioral(
     trigger_fusion_for_prediction(db, prediction, trigger_source="modality_behavioral_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
+
+
+@router.post("/behavioral/telemetry", response_model=BehavioralTelemetryResponse)
+def record_behavioral_telemetry(
+    request: BehavioralTelemetryRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_student_creator(current_user)
+    _require_modality_consent(db, current_user, "behavioral")
+    allowed_metadata = {
+        key: value
+        for key, value in (request.metadata or {}).items()
+        if str(key).lower() not in {"text", "raw_text", "keystrokes", "key_events", "mouse_path", "pointer_path", "coordinates"}
+    }
+    event = BehavioralTelemetryEvent(
+        student_id=current_user.id,
+        event_type=request.event_type,
+        source_page=request.source_page,
+        session_id=request.session_id,
+        session_duration_seconds=request.session_duration_seconds,
+        interaction_count=request.interaction_count,
+        response_latency_ms=request.response_latency_ms,
+        typing_active_ms=request.typing_active_ms,
+        typing_pause_count=request.typing_pause_count,
+        typed_character_count=request.typed_character_count,
+        metadata_json={
+            "privacy": "aggregate_only_no_raw_keystrokes_no_pointer_paths",
+            "client_metadata": allowed_metadata,
+        },
+        consent_policy_version=CURRENT_POLICY_VERSION,
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    stored_fields = [
+        field
+        for field in (
+            "session_duration_seconds",
+            "interaction_count",
+            "response_latency_ms",
+            "typing_active_ms",
+            "typing_pause_count",
+            "typed_character_count",
+        )
+        if getattr(event, field) is not None
+    ]
+    return BehavioralTelemetryResponse(
+        id=event.id,
+        user_id=current_user.id,
+        event_type=event.event_type,
+        source_page=event.source_page,
+        session_id=event.session_id,
+        consent_policy_version=event.consent_policy_version,
+        created_at=event.created_at,
+        stored_fields=stored_fields,
+    )
 
 
 @router.get("/predictions", response_model=ModalityPredictionListResponse)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -103,6 +104,42 @@ def test_browser_webm_fails_closed_when_decoder_is_unavailable(tmp_path: Path):
         assert quality.status == "unsupported"
     else:
         assert quality.status == "corrupt"
+
+
+def test_browser_webm_opus_decodes_to_44_feature_contract_when_ffmpeg_available(tmp_path: Path):
+    executable = ffmpeg_executable()
+    if executable is None:
+        pytest.skip("FFmpeg is not available on PATH for browser WebM/Opus validation")
+
+    wav_path = _write_tone(tmp_path / "browser_origin_source.wav", seconds=1.5)
+    webm_path = tmp_path / "browser_origin_audio.webm"
+    completed = subprocess.run(
+        [
+            executable,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(wav_path),
+            "-c:a",
+            "libopus",
+            str(webm_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+
+    quality = validate_speech_audio_quality(webm_path, content_type="audio/webm;codecs=opus")
+    vector = extract_verified_speech_features(webm_path, content_type="audio/webm;codecs=opus")
+
+    assert quality.status == "accepted"
+    assert quality.sample_rate == 16000
+    assert vector.as_2d_array().shape == (1, 44)
+    assert vector.feature_order == list(FEATURE_COLUMNS)
 
 
 def test_speech_model_predict_and_predict_proba_smoke(tmp_path: Path, monkeypatch):
