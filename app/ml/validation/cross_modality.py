@@ -140,3 +140,31 @@ def validate_phase2_cross_modality(
     )
     inventory = create_phase2_artifact_inventory(modalities=selected, generated_root=generated_path)
     return report, inventory
+
+
+def validate_phase3g_face_readiness(
+    *,
+    canonical_manifest_path: str | Path = "generated/preprocessing/face/v1/face_canonical_manifest.csv",
+    deduplicated_manifest_path: str | Path = "generated/remediation/face/v1/face_deduplicated_manifest.csv",
+    remediation_report_path: str | Path = "generated/remediation/face/v1/face_remediation_report.json",
+    source_fingerprint_path: str | Path = "generated/manifests/fingerprints/face/facial-emotion-v1.json",
+    policy_config_path: str | Path = "ml-research/configs/face.duplicate_policy.v1.json",
+    split_manifest_path: str | Path = "generated/manifests/splits/face/v2/face_split_manifest.json",
+    split_assignments_path: str | Path = "generated/manifests/splits/face/v2/face_split_assignments.csv",
+    output_dir: str | Path = "generated/reports/phase3g_face_readiness",
+    overwrite: bool = False,
+) -> dict:
+    """Validate Phase 3G Face remediation artifacts without changing Phase 2 reports."""
+    from app.ml.remediation.face.validation import generate_face_readiness_report
+
+    return generate_face_readiness_report(
+        canonical_manifest_path=canonical_manifest_path,
+        deduplicated_manifest_path=deduplicated_manifest_path,
+        remediation_report_path=remediation_report_path,
+        source_fingerprint_path=source_fingerprint_path,
+        policy_config_path=policy_config_path,
+        split_manifest_path=split_manifest_path,
+        split_assignments_path=split_assignments_path,
+        output_dir=output_dir,
+        overwrite=overwrite,
+    )

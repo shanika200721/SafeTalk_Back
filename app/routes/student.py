@@ -9,6 +9,7 @@ from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
+from app.core.logging import get_logger
 from app.models.database_models import (
     User, ProfileAssessment, DASS21Assessment, DailyCheckIn,
     Assessment, Alert, CounselorSession
@@ -17,6 +18,7 @@ from app.routes.auth import get_current_user
 from app.schemas import RiskAssessmentResponse
 
 router = APIRouter(prefix="/api/student", tags=["Student"])
+logger = get_logger("app.routes.student")
 
 # ==================== DASHBOARD ====================
 
@@ -48,8 +50,7 @@ def get_student_dashboard(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only students can access student dashboard"
         )
-    
-    print(f"📊 Loading dashboard for user {current_user.id} ({current_user.email})")
+    logger.info("student_dashboard_requested", extra={"user_id": current_user.id})
     
     # Get user profile assessment
     profile_assessment = db.query(ProfileAssessment).filter(
@@ -242,14 +243,14 @@ def get_student_stats(
     # Check-in streak
     recent_checkins = db.query(DailyCheckIn).filter(
         DailyCheckIn.user_id == current_user.id
-    ).order_by(DailyCheckIn.check_in_date.desc()).limit(30).all()
+    ).order_by(DailyCheckIn.created_at.desc()).limit(30).all()
     
     streak = 0
     today = datetime.now().date()
     
     for i, checkin in enumerate(recent_checkins):
         expected_date = today - timedelta(days=i)
-        if checkin.check_in_date == expected_date:
+        if checkin.created_at.date() == expected_date:
             streak += 1
         else:
             break

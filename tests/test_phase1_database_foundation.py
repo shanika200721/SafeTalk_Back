@@ -72,7 +72,14 @@ def test_model_registry_creation_and_active_model_retrieval(db_session):
         version="1.0.0",
         framework="sklearn",
         artifact_path="models/text-risk/1.0.0/model.joblib",
-        is_active=True,
+    )
+    first.status = "verified"
+    first.verification_status = "passed"
+    activate_model_version(
+        db_session,
+        model_name="text-risk",
+        modality="text",
+        version="1.0.0",
     )
     second = register_model(
         db_session,
@@ -82,6 +89,8 @@ def test_model_registry_creation_and_active_model_retrieval(db_session):
         framework="sklearn",
         artifact_path="models/text-risk/1.1.0/model.joblib",
     )
+    second.status = "verified"
+    second.verification_status = "passed"
     activate_model_version(
         db_session,
         model_name="text-risk",
@@ -106,7 +115,6 @@ def test_modality_prediction_risk_assessment_and_input_insertion(db_session):
         version="1.0.0",
         framework="sklearn",
         artifact_path="models/behavioral/1.0.0/model.joblib",
-        is_active=True,
     )
     db_session.commit()
 
