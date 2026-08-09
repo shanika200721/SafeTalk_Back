@@ -191,6 +191,8 @@ def _serialize_user_admin(db: Session, user: User) -> dict:
         "university_id": user.university_id,
         "university": user.university.university_name if user.university else None,
         "role": user.role.value,
+        "department": user.department,
+        "year_of_study": user.year_of_study,
         "status": status_label,
         "is_active": user.is_active,
         "registration_date": user.created_at,
@@ -657,6 +659,29 @@ def _university_or_404(db: Session, university_id: int) -> University:
     return university
 
 
+def _clean_required_text(value: str | None, label: str) -> str:
+    cleaned = str(value or "").strip()
+    if not cleaned:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{label} is required")
+    return cleaned
+
+
+def _clean_optional_text(value: str | None) -> str | None:
+    cleaned = str(value).strip() if value is not None else ""
+    return cleaned or None
+
+
+def _university_code_exists(db: Session, *, code: str, campus_name: str | None, exclude_id: int | None = None) -> bool:
+    query = db.query(University).filter(func.lower(University.university_code) == code.lower())
+    if campus_name is None:
+        query = query.filter(University.campus_name.is_(None))
+    else:
+        query = query.filter(func.lower(University.campus_name) == campus_name.lower())
+    if exclude_id is not None:
+        query = query.filter(University.id != exclude_id)
+    return query.first() is not None
+
+
 def _profile_or_404(db: Session, counselor_id: int) -> CounselorProfile:
     profile = db.query(CounselorProfile).filter(CounselorProfile.id == counselor_id).first()
     if not profile:
@@ -753,19 +778,24 @@ def _counselor_user_admin_payload(db: Session, user: User) -> dict:
 @router.post("/universities")
 def create_university(payload: UniversityCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     require_admin(current_user)
+    university_name = _clean_required_text(payload.university_name, "University name")
+    university_code = _clean_required_text(payload.university_code, "University code")
+    campus_name = _clean_optional_text(payload.campus_name)
+    if _university_code_exists(db, code=university_code, campus_name=campus_name):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="University code already exists for this campus")
     university = University(
         university_id=public_id("uni"),
-        university_name=payload.university_name,
-        university_code=payload.university_code,
-        campus_name=payload.campus_name,
-        address=payload.address,
-        district=payload.district,
-        province=payload.province,
+        university_name=university_name,
+        university_code=university_code,
+        campus_name=campus_name,
+        address=_clean_optional_text(payload.address),
+        district=_clean_optional_text(payload.district),
+        province=_clean_optional_text(payload.province),
         general_phone=normalize_e164(payload.general_phone),
         counseling_unit_phone=normalize_e164(payload.counseling_unit_phone),
         emergency_support_phone=normalize_e164(payload.emergency_support_phone),
         email=str(payload.email) if payload.email else None,
-        website=payload.website,
+        website=_clean_optional_text(payload.website),
         active=payload.active,
     )
     db.add(university)
@@ -796,6 +826,18 @@ def update_university(
     require_admin(current_user)
     university = _university_or_404(db, university_id)
     updates = payload.dict(exclude_unset=True)
+    if "university_name" in updates:
+        updates["university_name"] = _clean_required_text(updates["university_name"], "University name")
+    if "campus_name" in updates:
+        updates["campus_name"] = _clean_optional_text(updates["campus_name"])
+    if "address" in updates:
+        updates["address"] = _clean_optional_text(updates["address"])
+    if "district" in updates:
+        updates["district"] = _clean_optional_text(updates["district"])
+    if "province" in updates:
+        updates["province"] = _clean_optional_text(updates["province"])
+    if "website" in updates:
+        updates["website"] = _clean_optional_text(updates["website"])
     for phone_field in ("general_phone", "counseling_unit_phone", "emergency_support_phone"):
         if phone_field in updates:
             updates[phone_field] = normalize_e164(updates[phone_field])
@@ -1263,11 +1305,25 @@ def update_admin_user(
         _university_or_404(db, updates["university_id"])
     if "email" in updates and updates["email"] is not None:
         updates["email"] = str(updates["email"])
+        duplicate_email = db.query(User).filter(User.email == updates["email"], User.id != user.id).first()
+        if duplicate_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
+    if "full_name" in updates and updates["full_name"] is not None:
+        updates["full_name"] = _clean_required_text(updates["full_name"], "Full name")
     if "role" in updates and updates["role"] == UserRole.PSYCHIATRIST:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phase 4H does not manage psychiatrist accounts")
     status_update = updates.pop("status", None)
     for field, value in updates.items():
         setattr(user, field, value)
+    profile = db.query(CounselorProfile).filter(CounselorProfile.user_id == user.id).first()
+    if profile:
+        if "full_name" in updates:
+            profile.full_name = user.full_name
+        if "email" in updates:
+            profile.email = user.email
+        if "university_id" in updates:
+            profile.university_id = user.university_id
+        profile.updated_at = datetime.utcnow()
     if status_update:
         if status_update == "active":
             user.is_active = True
