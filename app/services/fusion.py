@@ -368,7 +368,17 @@ def _select_predictions(db: Session, user_id: int, now: datetime) -> tuple[dict[
         if modality not in selected and modality not in missing:
             missing.append(modality)
 
-    excluded.append(_failure("behavioral", "modality_not_validated"))
+    behavioral_prediction = (
+        db.query(ModalityPrediction)
+        .filter(ModalityPrediction.student_id == user_id, ModalityPrediction.modality == "behavioral")
+        .order_by(ModalityPrediction.created_at.desc(), ModalityPrediction.id.desc())
+        .first()
+    )
+    if behavioral_prediction:
+        excluded.append(_failure("behavioral", "no_validated_risk_mapping", behavioral_prediction))
+    else:
+        excluded.append(_failure("behavioral", "missing_prediction"))
+        missing.append("behavioral")
     return selected, excluded, missing
 
 

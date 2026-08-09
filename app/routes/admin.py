@@ -34,6 +34,7 @@ from app.models.database_models import (
     UserRole,
     WorkerJob,
 )
+from app.ml.runtime.speech_preprocessor import ffmpeg_executable
 from app.routes.auth import get_current_user
 from app.security import hash_password
 from app.services.model_registry import (
@@ -246,8 +247,57 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         .order_by(ModalityPrediction.created_at.desc())
         .first()
     )
+    if model is None and modality in {"dass21", "mood", "behavioral"}:
+        if modality == "dass21":
+            module_name = "dass21-rule-scoring"
+            technical_status = "active_deterministic_module"
+            research_reliability = "psychometric_scoring"
+            fusion_status = "eligible"
+            fusion_eligible = True
+            failure_reason = None
+        elif modality == "mood":
+            module_name = "daily-checkin-deterministic-signal"
+            technical_status = "active_deterministic_signal"
+            research_reliability = "heuristic_screening_support"
+            fusion_status = "eligible"
+            fusion_eligible = True
+            failure_reason = None
+        else:
+            module_name = "behavioral-personal-baseline-anomaly"
+            technical_status = "active_contextual_anomaly_signal"
+            research_reliability = "contextual_only"
+            fusion_status = "excluded_no_validated_risk_mapping"
+            fusion_eligible = False
+            failure_reason = "no_validated_risk_mapping"
+        return {
+            "modality": modality,
+            "model_id": None,
+            "model_name": module_name,
+            "model_version": "1.0.0" if modality != "mood" else "1.1.0",
+            "registry_status": "virtual_runtime_module",
+            "active": True,
+            "artifact_available": False,
+            "hash_valid": None,
+            "loader_status": "available",
+            "preprocessing_status": "available",
+            "smoke_test_status": "covered_by_regression_tests",
+            "last_successful_inference": last_success.created_at if last_success else None,
+            "last_failed_inference": last_failure.created_at if last_failure else None,
+            "failure_reason": failure_reason,
+            "blocking_reason": failure_reason,
+            "predictions_last_24h": int(predictions_last_24h or 0),
+            "average_inference_duration": None,
+            "fusion_eligibility": fusion_eligible,
+            "fusion_status": fusion_status,
+            "health_state": "verified_active" if fusion_eligible else "active_fusion_excluded",
+            "technical_status": technical_status,
+            "research_reliability": research_reliability,
+            "limitations": [
+                "Deterministic or contextual runtime module; not represented as a trained serialized ML artifact."
+            ],
+        }
     if model is None:
-        blocking_reason = "no_registered_model" if modality != "behavioral" else "no_verified_behavioral_model"
+        blocking_reason = "no_registered_model"
         return {
             "modality": modality,
             "model_id": None,
@@ -264,8 +314,8 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
             "blocking_reason": blocking_reason,
             "predictions_last_24h": int(predictions_last_24h or 0),
             "average_inference_duration": None,
-            "fusion_eligibility": modality in {"profile", "text"} and bool(last_success),
-            "fusion_status": "eligible" if modality in {"profile", "text"} and bool(last_success) else "excluded_no_validated_model",
+            "fusion_eligibility": False,
+            "fusion_status": "excluded_no_validated_model",
             "health_state": "unavailable",
             "technical_status": "unavailable",
             "research_reliability": "not_evaluated" if modality == "behavioral" else "experimental",
@@ -336,7 +386,13 @@ def _runtime_status_item(db: Session, model: ModelRegistry | None, modality: str
         "active": model.is_active,
         "artifact_available": artifact_available,
         "hash_valid": hash_valid,
-        "loader_status": "available" if model.modality in {"profile", "text"} and model.is_active else ("available_with_ffmpeg" if model.modality == "speech" and activation_eligible else "not_approved"),
+        "loader_status": "available" if model.modality in {"profile", "text", "face"} and model.is_active else (
+            "available_wav_only_ffmpeg_missing"
+            if model.modality == "speech" and activation_eligible and ffmpeg_executable() is None
+            else "available_with_ffmpeg"
+            if model.modality == "speech" and activation_eligible
+            else "not_approved"
+        ),
         "preprocessing_status": "available" if activation_eligible else "not_approved",
         "smoke_test_status": verification.get("smoke_test_status", "not_run"),
         "last_successful_inference": last_success.created_at if last_success else None,
@@ -1405,7 +1461,7 @@ def list_admin_models(current_user: User = Depends(get_current_user), db: Sessio
     discover_runtime_candidates(db)
     db.commit()
     models = db.query(ModelRegistry).order_by(ModelRegistry.modality.asc(), ModelRegistry.model_name.asc(), ModelRegistry.version.asc()).all()
-    modalities = ["profile", "text", "speech", "face", "fusion"]
+    modalities = ["profile", "dass21", "mood", "text", "speech", "face", "behavioral", "fusion"]
     return {
         "models": [_serialize_model(item) for item in models],
         "by_modality": {modality: [_serialize_model(item) for item in models if item.modality == modality] for modality in modalities},
@@ -1421,14 +1477,14 @@ def get_model_runtime_status(current_user: User = Depends(get_current_user), db:
     latest_by_modality = {}
     for model in rows:
         latest_by_modality.setdefault(model.modality, model)
-    modalities = ["profile", "text", "speech", "face", "behavioral"]
+    modalities = ["profile", "dass21", "mood", "text", "speech", "face", "behavioral"]
     status_rows = [_runtime_status_item(db, latest_by_modality.get(modality), modality) for modality in modalities]
     return {
         "runtime_status": status_rows,
         "fusion": {
             "status": "active",
-            "behavioral": "unavailable",
-            "speech_face_policy": "included only when verified active and fusion eligible",
+            "behavioral": "active_contextual_fusion_excluded",
+            "speech_face_policy": "excluded unless verified active and separately fusion eligible",
         },
         "privacy": "No sensitive source content is returned by this endpoint.",
     }

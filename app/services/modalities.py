@@ -11,6 +11,15 @@ from app.ml.preprocessing.dass21.constants import (
     ITEM_MULTIPLIER,
     QUESTIONNAIRE_VERSION,
 )
+from app.ml.runtime.behavioral import (
+    BEHAVIORAL_FEATURE_SCHEMA_VERSION,
+    BEHAVIORAL_MODEL_NAME,
+    BEHAVIORAL_MODEL_VERSION,
+    BEHAVIORAL_PREPROCESSING_VERSION,
+    BEHAVIORAL_RISK_MAPPING_STATUS,
+    BEHAVIORAL_RUNTIME_LIMITATION,
+    predict_behavioral_signal,
+)
 from app.models.database_models import (
     ChatMessage,
     DASS21Assessment,
@@ -61,11 +70,11 @@ MODALITY_CONSENT_TYPES = {
 MODEL_EVIDENCE = {
     "profile": {"name": "profile-heuristic", "version": "1.0.0", "preprocessing": "profile-runtime-v1", "schema": "profile-feature-v1"},
     "dass21": {"name": "dass21-rule-scoring", "version": DASS21_SCORING_VERSION, "preprocessing": "dass21-runtime-v1", "schema": DASS21_FEATURE_SCHEMA_VERSION},
-    "mood": {"name": "daily-checkin-heuristic", "version": "1.0.0", "preprocessing": "mood-runtime-v1", "schema": "mood-feature-v1"},
+    "mood": {"name": "daily-checkin-deterministic-signal", "version": "1.1.0", "preprocessing": "mood-runtime-v1.1", "schema": "mood-feature-v1.1"},
     "text": {"name": None, "version": None, "preprocessing": "text-contract-v1", "schema": "text-feature-v1"},
     "speech": {"name": None, "version": None, "preprocessing": "speech-contract-v1", "schema": "speech-feature-v1"},
     "face": {"name": None, "version": None, "preprocessing": "face-contract-v1", "schema": "face-feature-v1"},
-    "behavioral": {"name": None, "version": None, "preprocessing": "behavioral-contract-v1", "schema": "behavioral-feature-v1"},
+    "behavioral": {"name": BEHAVIORAL_MODEL_NAME, "version": BEHAVIORAL_MODEL_VERSION, "preprocessing": BEHAVIORAL_PREPROCESSING_VERSION, "schema": BEHAVIORAL_FEATURE_SCHEMA_VERSION},
 }
 
 
@@ -398,6 +407,66 @@ def create_dass21_prediction_for_assessment(db: Session, assessment: DASS21Asses
     )
 
 
+def _mood_trend_features(db: Session, checkin: DailyCheckIn) -> dict:
+    recent = (
+        db.query(DailyCheckIn)
+        .filter(DailyCheckIn.user_id == checkin.user_id, DailyCheckIn.created_at <= checkin.created_at)
+        .order_by(DailyCheckIn.created_at.desc(), DailyCheckIn.id.desc())
+        .limit(14)
+        .all()
+    )
+    ordered = list(reversed(recent))
+    moods = [float(item.mood) for item in ordered if item.mood is not None]
+    if not moods:
+        return {
+            "recent_checkin_count": 0,
+            "recent_mood_mean": None,
+            "previous_mood_mean": None,
+            "worsening_trend": 0.0,
+            "repeated_low_mood_count": 0,
+        }
+    current_window = moods[-7:]
+    previous_window = moods[:-7][-7:]
+    recent_mean = sum(current_window) / len(current_window)
+    previous_mean = sum(previous_window) / len(previous_window) if previous_window else None
+    worsening = max(0.0, (previous_mean - recent_mean) / 4.0) if previous_mean is not None else 0.0
+    return {
+        "recent_checkin_count": len(moods),
+        "recent_mood_mean": round(recent_mean, 4),
+        "previous_mood_mean": round(previous_mean, 4) if previous_mean is not None else None,
+        "worsening_trend": round(worsening, 6),
+        "repeated_low_mood_count": sum(1 for value in current_window if value <= 2),
+    }
+
+
+def _deterministic_mood_signal(features: dict) -> tuple[float, dict]:
+    current_mood_component = ((5.0 - float(features.get("mood", 3))) / 4.0) * 35.0
+    stress_component = (max(1.0, min(10.0, float(features.get("stress_level", 5)))) - 1.0) / 9.0 * 15.0
+    anxiety_component = (max(1.0, min(10.0, float(features.get("anxiety_level", 5)))) - 1.0) / 9.0 * 15.0
+    sleep_hours = float(features.get("sleep_hours", 7) or 7)
+    sleep_component = 12.0 if sleep_hours < 4 or sleep_hours > 10 else 8.0 if sleep_hours < 6 or sleep_hours > 9 else 0.0
+    low_mood_component = min(10.0, float(features.get("repeated_low_mood_count", 0)) * 2.5)
+    trend_component = float(features.get("worsening_trend", 0.0)) * 8.0
+    flag_component = 0.0
+    if features.get("negative_thoughts"):
+        flag_component += 10.0
+    if features.get("substance_use_today"):
+        flag_component += 5.0
+    if features.get("self_harm_thoughts"):
+        flag_component += 25.0
+    components = {
+        "current_mood_component": round(current_mood_component, 4),
+        "stress_component": round(stress_component, 4),
+        "anxiety_component": round(anxiety_component, 4),
+        "sleep_component": round(sleep_component, 4),
+        "repeated_low_mood_component": round(low_mood_component, 4),
+        "worsening_trend_component": round(trend_component, 4),
+        "declared_concern_flags_component": round(flag_component, 4),
+    }
+    score = max(0.0, min(100.0, sum(components.values())))
+    return round(score, 2), components
+
+
 def create_mood_prediction_for_checkin(db: Session, checkin: DailyCheckIn) -> ModalityPrediction:
     features = {
         "mood": checkin.mood,
@@ -410,7 +479,8 @@ def create_mood_prediction_for_checkin(db: Session, checkin: DailyCheckIn) -> Mo
         "substance_use_today": checkin.substance_use_today,
         "self_harm_thoughts": checkin.self_harm_thoughts,
     }
-    score = DailyCheckInCalculator.calculate(features)
+    features.update(_mood_trend_features(db, checkin))
+    score, components = _deterministic_mood_signal(features)
     snapshot = create_feature_snapshot(
         db,
         student_id=checkin.user_id,
@@ -435,7 +505,70 @@ def create_mood_prediction_for_checkin(db: Session, checkin: DailyCheckIn) -> Mo
         feature_snapshot=snapshot,
         score=score,
         label=profile_label(score),
-        metadata_json={"heuristic_source": "DailyCheckInCalculator"},
+        metadata_json={
+            "heuristic_source": "deterministic_mood_signal_v1_1",
+            "algorithm": "weighted current mood, stress, anxiety, sleep, repeated low mood, worsening trend, and collected concern flags",
+            "components": components,
+            "legacy_daily_checkin_calculator_score": DailyCheckInCalculator.calculate(features),
+            "normalized_signal": round(score / 100.0, 6),
+        },
+    )
+
+
+def create_behavioral_prediction(db: Session, user: User) -> ModalityPrediction:
+    signal = predict_behavioral_signal(db, user)
+    snapshot = create_feature_snapshot(
+        db,
+        student_id=user.id,
+        modality="behavioral",
+        source_type="behavioral_activity_aggregate",
+        source_record_id=None,
+        source_timestamp=datetime.utcnow(),
+        feature_schema_version=BEHAVIORAL_FEATURE_SCHEMA_VERSION,
+        preprocessing_version=BEHAVIORAL_PREPROCESSING_VERSION,
+        features_json=signal.features,
+        data_quality_status=signal.data_sufficiency,
+        data_quality_flags=[] if signal.data_sufficiency != "insufficient_personal_baseline" else ["insufficient_personal_baseline"],
+        metadata_json=signal.provenance,
+    )
+    return create_prediction(
+        db,
+        student_id=user.id,
+        modality="behavioral",
+        status_value="succeeded",
+        is_available=True,
+        output_type="heuristic",
+        source_type="behavioral_activity_aggregate",
+        source_record_id=None,
+        source_timestamp=datetime.utcnow(),
+        feature_snapshot=snapshot,
+        score=signal.anomaly_score,
+        confidence=signal.confidence,
+        label=signal.label,
+        raw_output_json={
+            "behavioral_anomaly_score": signal.anomaly_score,
+            "confidence": signal.confidence,
+            "data_sufficiency": signal.data_sufficiency,
+            "feature_provenance": signal.provenance,
+        },
+        metadata_json={
+            "technical_status": "active_contextual_anomaly_signal",
+            "research_reliability": "contextual_only",
+            "risk_mapping_status": BEHAVIORAL_RISK_MAPPING_STATUS,
+            "fusion_status": "excluded_no_validated_risk_mapping",
+            "fusion_eligible": False,
+            "normalized_score": round(signal.anomaly_score / 100.0, 6),
+            "exclusion_reason": "no_validated_risk_mapping",
+            "data_sufficiency": signal.data_sufficiency,
+            "provenance": signal.provenance,
+            "limitation": BEHAVIORAL_RUNTIME_LIMITATION,
+        },
+        model_name=BEHAVIORAL_MODEL_NAME,
+        model_version=BEHAVIORAL_MODEL_VERSION,
+        preprocessing_version=BEHAVIORAL_PREPROCESSING_VERSION,
+        feature_schema_version=BEHAVIORAL_FEATURE_SCHEMA_VERSION,
+        data_quality_status=signal.data_sufficiency,
+        data_quality_flags=[] if signal.data_sufficiency != "insufficient_personal_baseline" else ["insufficient_personal_baseline"],
     )
 
 
@@ -535,11 +668,11 @@ def availability_contract() -> list[dict]:
         {
             "modality": "mood",
             "implemented": True,
-            "runtime_model_active": False,
+            "runtime_model_active": True,
             "contract_available": True,
             "consent_required": "mood_processing",
             "source_requirements": ["owned daily check-in record"],
-            "limitations": ["Heuristic check-in signal only.", SCREENING_LIMITATION],
+            "limitations": ["Deterministic check-in signal with trend features.", SCREENING_LIMITATION],
         },
         {
             "modality": "text",
@@ -557,24 +690,24 @@ def availability_contract() -> list[dict]:
             "contract_available": True,
             "consent_required": "voice_processing",
             "source_requirements": ["authorized voice chat message id or secure upload reference"],
-            "limitations": ["Voice-message delivery is separate from analysis.", "Runtime speech model is not active."],
+            "limitations": ["Voice-message delivery is separate from analysis.", "Speech emotion remains fusion excluded without an approved risk mapping."],
         },
         {
             "modality": "face",
-            "implemented": False,
+            "implemented": True,
             "runtime_model_active": False,
             "contract_available": True,
             "consent_required": "face_processing",
-            "source_requirements": ["future secure face source reference"],
-            "limitations": ["Backend face inference is not active.", "Frontend random emotion values are not accepted."],
+            "source_requirements": ["explicit browser camera capture image data URL"],
+            "limitations": ["Facial emotion model has low test reliability.", "Frontend random emotion values are not accepted.", "Fusion excluded unless separately validated."],
         },
         {
             "modality": "behavioral",
-            "implemented": False,
-            "runtime_model_active": False,
-            "contract_available": False,
+            "implemented": True,
+            "runtime_model_active": True,
+            "contract_available": True,
             "consent_required": "behavioral_processing",
-            "source_requirements": [],
-            "limitations": ["Behavioral modality is not validated and never returns a success score in Phase 4C."],
+            "source_requirements": ["persisted login/check-in/journal/chat activity metadata"],
+            "limitations": ["Contextual anomaly signal only.", "No validated suicide-risk mapping; fusion excluded."],
         },
     ]

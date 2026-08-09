@@ -274,6 +274,7 @@ class SpeechPredictionRequest(BaseModel):
 
 class FacePredictionRequest(BaseModel):
     source_reference_id: Optional[str] = Field(default=None, max_length=120)
+    image_data_url: Optional[str] = Field(default=None, max_length=3_000_000)
 
     @field_validator("source_reference_id")
     @classmethod
@@ -282,6 +283,15 @@ class FacePredictionRequest(BaseModel):
             return value
         if any(fragment in value for fragment in ("/", "\\", ":", "..")):
             raise ValueError("Use a secure source reference, not a filesystem path")
+        return value
+
+    @field_validator("image_data_url")
+    @classmethod
+    def validate_image_data_url(cls, value):
+        if value is None:
+            return value
+        if not value.startswith(("data:image/jpeg;base64,", "data:image/jpg;base64,", "data:image/png;base64,")):
+            raise ValueError("Use a JPEG or PNG data URL captured by the browser")
         return value
 
 

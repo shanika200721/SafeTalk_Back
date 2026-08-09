@@ -16,7 +16,7 @@ from app.models.database_models import ModelRegistry, ModalityPrediction
 REPO_ROOT = Path(__file__).resolve().parents[3]
 APPROVED_MODEL_ROOT = REPO_ROOT / "ml_models"
 SUPPORTED_SERIALIZERS = {"joblib"}
-RUNTIME_SUPPORTED_MODALITIES = {"profile", "text"}
+RUNTIME_SUPPORTED_MODALITIES = {"profile", "text", "speech", "face"}
 REGISTRY_STATUSES = {
     "discovered",
     "verified",
@@ -168,9 +168,9 @@ def _smoke_input_for_modality(modality: str, feature_schema: dict):
     if modality == "face":
         names = feature_schema.get("feature_names") or []
         defaults = {
-            "mean_intensity": 0.5,
-            "std_intensity": 0.1,
-            "contrast": 0.2,
+            "mean_intensity": 128.0,
+            "std_intensity": 24.0,
+            "contrast": 48.0,
             "edge_density": 0.03,
             "entropy": 4.0,
         }

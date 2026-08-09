@@ -3,7 +3,9 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.ml.runtime.base import RuntimeModelUnavailable, RuntimePredictionResult
+from app.ml.runtime.face import FaceRuntimeLoader
 from app.ml.runtime.profile import ProfileRuntimeLoader
+from app.ml.runtime.speech import SpeechRuntimeLoader
 from app.ml.runtime.text import TextRuntimeLoader
 from app.models.database_models import ModelRegistry
 from app.services.model_registry import get_active_model
@@ -12,6 +14,8 @@ from app.services.model_registry import get_active_model
 _LOADERS = {
     "profile": ProfileRuntimeLoader(),
     "text": TextRuntimeLoader(),
+    "speech": SpeechRuntimeLoader(),
+    "face": FaceRuntimeLoader(),
 }
 
 

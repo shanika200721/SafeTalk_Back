@@ -202,7 +202,7 @@ def test_availability_reports_runtime_truth(client, db_session):
     assert modalities["text"]["runtime_model_active"] is False
     assert modalities["speech"]["runtime_model_active"] is False
     assert modalities["face"]["runtime_model_active"] is False
-    assert modalities["behavioral"]["runtime_model_active"] is False
+    assert modalities["behavioral"]["runtime_model_active"] is True
 
 
 def test_legacy_profile_submission_creates_heuristic_prediction(client, db_session):
@@ -354,7 +354,7 @@ def test_speech_unavailable_blocks_unauthorized_audio_and_never_returns_raw_path
     assert ".wav" not in str(payload)
 
 
-def test_face_and_behavioral_return_honest_unavailable_contracts(client, db_session):
+def test_face_unavailable_and_behavioral_contextual_signal_contracts(client, db_session):
     user = create_user(db_session, "inactive-modalities")
     headers = auth_headers(client, user.username)
     grant_modalities(client, headers, "face_processing", "behavioral_processing")
@@ -368,9 +368,10 @@ def test_face_and_behavioral_return_honest_unavailable_contracts(client, db_sess
     assert face.json()["failure_code"] == "MODEL_NOT_ACTIVE"
 
     assert behavioral.status_code == 200
-    assert behavioral.json()["status"] == "unavailable"
-    assert behavioral.json()["score"] is None
-    assert behavioral.json()["failure_code"] == "MODALITY_NOT_VALIDATED"
+    assert behavioral.json()["status"] == "succeeded"
+    assert behavioral.json()["score"] is not None
+    assert behavioral.json()["metadata"]["fusion_eligible"] is False
+    assert behavioral.json()["metadata"]["risk_mapping_status"] == "no_validated_risk_mapping"
 
 
 def test_prediction_retrieval_self_admin_and_generic_counselor_denied(client, db_session):

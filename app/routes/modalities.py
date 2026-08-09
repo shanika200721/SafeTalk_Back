@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -25,7 +27,10 @@ from app.schemas import (
     TextPredictionRequest,
 )
 from app.ml.runtime.base import RuntimeInferenceError, RuntimeModelUnavailable
+from app.ml.runtime.face import FacePreprocessingError
 from app.ml.runtime.registry import predict_with_active_model
+from app.ml.runtime.speech import SPEECH_RISK_MAPPING_STATUS, SPEECH_RUNTIME_LIMITATION
+from app.ml.runtime.speech_preprocessor import SpeechPreprocessingError, validate_speech_audio_quality
 from app.services.model_registry import get_active_model
 from app.services.consent import require_active_consent
 from app.services.modalities import (
@@ -36,6 +41,7 @@ from app.services.modalities import (
     authorize_prediction_read,
     create_prediction,
     create_dass21_prediction_for_assessment,
+    create_behavioral_prediction,
     create_failed_prediction,
     create_feature_snapshot,
     create_mood_prediction_for_checkin,
@@ -51,6 +57,7 @@ from app.utils.dass21_calculator import DASS21Calculator
 
 
 router = APIRouter(prefix="/api/modalities", tags=["Modalities"])
+AUDIO_UPLOAD_DIR = Path("uploaded_audio")
 
 
 def _require_modality_consent(db: Session, user: User, modality: str) -> None:
@@ -360,12 +367,16 @@ def predict_speech(
     source_timestamp = None
     source_type = "secure_voice_reference"
     snapshot = None
+    audio_path = None
+    content_type = "audio/wav"
 
     if request.chat_message_id is not None:
         message = verify_owned_chat_message(db, request.chat_message_id, current_user)
         source_record_id = message.id
         source_timestamp = message.created_at
         source_type = "chat_voice_message"
+        audio_path = AUDIO_UPLOAD_DIR / Path(message.message or "").name
+        content_type = (message.metadata_json or {}).get("original_mime_type") or content_type
         snapshot = create_feature_snapshot(
             db,
             student_id=current_user.id,
@@ -377,18 +388,122 @@ def predict_speech(
             preprocessing_version=MODEL_EVIDENCE["speech"]["preprocessing"],
             features_json={"source_kind": "authorized_chat_message", "raw_path_returned": False},
         )
+    elif request.upload_reference_id:
+        audio_path = AUDIO_UPLOAD_DIR / request.upload_reference_id
+        source_type = "secure_voice_upload_reference"
 
-    prediction = create_unavailable_prediction(
-        db,
-        user=current_user,
-        modality="speech",
-        failure_code="MODEL_NOT_ACTIVE",
-        message="The speech runtime model is not active; voice storage is not speech analysis.",
-        source_type=source_type,
-        source_record_id=source_record_id,
-        source_timestamp=source_timestamp,
-        feature_snapshot=snapshot,
-    )
+    active_model = get_active_model(db, modality="speech")
+    if not active_model:
+        prediction = create_unavailable_prediction(
+            db,
+            user=current_user,
+            modality="speech",
+            failure_code="MODEL_NOT_ACTIVE",
+            message="The speech runtime model is not active; voice storage is not speech analysis.",
+            source_type=source_type,
+            source_record_id=source_record_id,
+            source_timestamp=source_timestamp,
+            feature_snapshot=snapshot,
+        )
+    elif audio_path is None or not audio_path.exists():
+        prediction = create_failed_prediction(
+            db,
+            user=current_user,
+            modality="speech",
+            failure_code="AUDIO_SOURCE_NOT_FOUND",
+            message="Speech analysis requires an authorized stored audio source.",
+            source_type=source_type,
+            source_record_id=source_record_id,
+            source_timestamp=source_timestamp,
+            feature_snapshot=snapshot,
+            model_registry=active_model,
+        )
+    else:
+        quality = validate_speech_audio_quality(audio_path, content_type=content_type)
+        if not quality.accepted:
+            prediction = create_prediction(
+                db,
+                student_id=current_user.id,
+                modality="speech",
+                status_value="failed",
+                is_available=False,
+                output_type="machine_learning",
+                source_type=source_type,
+                source_record_id=source_record_id,
+                source_timestamp=source_timestamp,
+                feature_snapshot=snapshot,
+                failure_code="AUDIO_QUALITY_REJECTED",
+                failure_message_safe="Speech analysis was unavailable because the audio did not meet quality or decoder requirements.",
+                raw_output_json={"quality": quality.__dict__},
+                metadata_json={"fusion_eligible": False, "fusion_status": "excluded_audio_quality", "raw_path_returned": False},
+                model_registry=active_model,
+                valid_for_hours=None,
+                data_quality_status=quality.status,
+                data_quality_flags=quality.flags,
+            )
+        else:
+            try:
+                _, result = predict_with_active_model(
+                    db,
+                    modality="speech",
+                    payload={"path": str(audio_path), "content_type": content_type},
+                )
+                if snapshot is None:
+                    snapshot = create_feature_snapshot(
+                        db,
+                        student_id=current_user.id,
+                        modality="speech",
+                        source_type=source_type,
+                        source_record_id=source_record_id,
+                        source_timestamp=source_timestamp,
+                        feature_schema_version=active_model.feature_schema_version or MODEL_EVIDENCE["speech"]["schema"],
+                        preprocessing_version=active_model.preprocessing_version or MODEL_EVIDENCE["speech"]["preprocessing"],
+                        features_json=result.features,
+                        metadata_json={"raw_path_returned": False, "feature_shape": result.metadata.get("feature_shape")},
+                    )
+                else:
+                    snapshot.features_json = result.features
+                    snapshot.metadata_json = {**(snapshot.metadata_json or {}), "feature_shape": result.metadata.get("feature_shape")}
+                prediction = create_prediction(
+                    db,
+                    student_id=current_user.id,
+                    modality="speech",
+                    status_value="succeeded",
+                    is_available=True,
+                    output_type="machine_learning",
+                    source_type=source_type,
+                    source_record_id=source_record_id,
+                    source_timestamp=source_timestamp,
+                    feature_snapshot=snapshot,
+                    probability=result.probability,
+                    confidence=result.confidence,
+                    label=result.label,
+                    raw_output_json={"emotion_label": result.label, "class_probabilities": result.probabilities},
+                    metadata_json={
+                        **result.metadata,
+                        "class_probabilities": result.probabilities,
+                        "fusion_status": SPEECH_RISK_MAPPING_STATUS,
+                        "fusion_eligible": False,
+                        "limitation": SPEECH_RUNTIME_LIMITATION,
+                        "raw_path_returned": False,
+                    },
+                    model_registry=active_model,
+                    data_quality_status=result.metadata.get("data_quality_status") or "accepted",
+                    data_quality_flags=result.metadata.get("data_quality_flags") or [],
+                )
+            except (RuntimeModelUnavailable, RuntimeInferenceError, SpeechPreprocessingError):
+                prediction = create_failed_prediction(
+                    db,
+                    user=current_user,
+                    modality="speech",
+                    failure_code="SPEECH_RUNTIME_FAILED",
+                    message="The active speech runtime model could not safely produce a prediction.",
+                    source_type=source_type,
+                    source_record_id=source_record_id,
+                    source_timestamp=source_timestamp,
+                    feature_snapshot=snapshot,
+                    model_registry=active_model,
+                )
     trigger_fusion_for_prediction(db, prediction, trigger_source="modality_speech_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
@@ -402,14 +517,79 @@ def predict_face(
 ):
     _require_student_creator(current_user)
     _require_modality_consent(db, current_user, "face")
-    prediction = create_unavailable_prediction(
-        db,
-        user=current_user,
-        modality="face",
-        failure_code="MODEL_NOT_ACTIVE",
-        message="Backend face inference is not active. Frontend random emotion output is not accepted as evidence.",
-        source_type="future_face_reference" if request.source_reference_id else "no_face_source",
-    )
+    active_model = get_active_model(db, modality="face")
+    source_type = "browser_face_capture" if request.image_data_url else ("secure_face_reference" if request.source_reference_id else "no_face_source")
+    if not active_model:
+        prediction = create_unavailable_prediction(
+            db,
+            user=current_user,
+            modality="face",
+            failure_code="MODEL_NOT_ACTIVE",
+            message="Backend face inference is not active. Frontend random emotion output is not accepted as evidence.",
+            source_type=source_type,
+        )
+    elif not request.image_data_url:
+        prediction = create_failed_prediction(
+            db,
+            user=current_user,
+            modality="face",
+            failure_code="FACE_SOURCE_NOT_FOUND",
+            message="Facial analysis requires an explicit browser-captured image payload.",
+            source_type=source_type,
+            model_registry=active_model,
+        )
+    else:
+        try:
+            _, result = predict_with_active_model(
+                db,
+                modality="face",
+                payload={"image_data_url": request.image_data_url},
+            )
+            snapshot = create_feature_snapshot(
+                db,
+                student_id=current_user.id,
+                modality="face",
+                source_type=source_type,
+                source_record_id=None,
+                source_timestamp=None,
+                feature_schema_version=active_model.feature_schema_version or MODEL_EVIDENCE["face"]["schema"],
+                preprocessing_version=active_model.preprocessing_version or MODEL_EVIDENCE["face"]["preprocessing"],
+                features_json=result.features,
+                metadata_json={
+                    "explicit_capture_reference": request.source_reference_id,
+                    "raw_image_stored": False,
+                    "feature_shape": result.metadata.get("feature_shape"),
+                    "face_detection_status": result.metadata.get("face_detection_status"),
+                },
+            )
+            prediction = create_prediction(
+                db,
+                student_id=current_user.id,
+                modality="face",
+                status_value="succeeded",
+                is_available=True,
+                output_type="machine_learning",
+                source_type=source_type,
+                source_record_id=None,
+                source_timestamp=None,
+                feature_snapshot=snapshot,
+                probability=result.probability,
+                confidence=result.confidence,
+                label=result.label,
+                raw_output_json={"emotion_label": result.label, "class_probabilities": result.probabilities},
+                metadata_json={**result.metadata, "class_probabilities": result.probabilities, "raw_image_stored": False},
+                model_registry=active_model,
+            )
+        except (RuntimeModelUnavailable, RuntimeInferenceError, FacePreprocessingError):
+            prediction = create_failed_prediction(
+                db,
+                user=current_user,
+                modality="face",
+                failure_code="FACE_RUNTIME_FAILED",
+                message="The active face runtime model could not safely produce a prediction.",
+                source_type=source_type,
+                model_registry=active_model,
+            )
     trigger_fusion_for_prediction(db, prediction, trigger_source="modality_face_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
@@ -423,14 +603,7 @@ def predict_behavioral(
 ):
     _require_student_creator(current_user)
     _require_modality_consent(db, current_user, "behavioral")
-    prediction = create_unavailable_prediction(
-        db,
-        user=current_user,
-        modality="behavioral",
-        failure_code="MODALITY_NOT_VALIDATED",
-        message="Behavioral modality is not validated for runtime prediction.",
-        source_type="not_validated",
-    )
+    prediction = create_behavioral_prediction(db, current_user)
     trigger_fusion_for_prediction(db, prediction, trigger_source="modality_behavioral_predict", actor=current_user)
     db.refresh(prediction)
     return prediction_to_response(prediction)
@@ -502,15 +675,22 @@ def get_availability(current_user: User = Depends(get_current_user), db: Session
     modalities = availability_contract()
     active_models = {
         modality: get_active_model(db, modality=modality)
-        for modality in ("profile", "text")
+        for modality in ("profile", "text", "speech", "face")
     }
     for item in modalities:
         active_model = active_models.get(item["modality"])
         if active_model:
             item["implemented"] = True
             item["runtime_model_active"] = True
-            item["limitations"] = [SCREENING_LIMITATION] if item["modality"] == "profile" else [
-                "SafeTalk chat is separate and is not used as this modality model.",
-                SCREENING_LIMITATION,
-            ]
+            if item["modality"] == "profile":
+                item["limitations"] = [SCREENING_LIMITATION]
+            elif item["modality"] == "text":
+                item["limitations"] = [
+                    "SafeTalk chat is separate and is not used as this modality model.",
+                    SCREENING_LIMITATION,
+                ]
+            elif item["modality"] == "speech":
+                item["limitations"] = ["Speech emotion is technically active but fusion excluded without an approved risk mapping."]
+            elif item["modality"] == "face":
+                item["limitations"] = ["Facial emotion is technically active but low reliability and fusion excluded."]
     return {"modalities": modalities}

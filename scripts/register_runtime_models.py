@@ -53,7 +53,7 @@ def main() -> int:
     parser.add_argument(
         "--activate",
         nargs="*",
-        choices=["profile", "text"],
+        choices=["profile", "text", "speech", "face"],
         default=[],
         help="Explicitly activate verified models for the listed modalities.",
     )

@@ -324,7 +324,9 @@ def test_admin_aggregate_and_facial_status_are_privacy_preserving(client, db_ses
     face = client.get("/api/student/facial-analysis/status", headers=student_headers)
     assert face.status_code == 200
     payload = face.json()
-    assert payload["runtime_state"] == "inactive"
+    assert payload["runtime_state"] == "experimental"
+    assert payload["runtime_model_active"] is False
+    assert payload["implemented"] is True
     assert payload["consent"]["facial_capture"] is True
     assert "score" not in payload
 

@@ -248,7 +248,8 @@ def test_runtime_status_admin_only_and_no_sensitive_content(client, db_session):
     assert response.status_code == 200
     payload = response.json()
     modalities = {item["modality"]: item for item in payload["runtime_status"]}
-    assert modalities["behavioral"]["health_state"] == "unavailable"
+    assert modalities["behavioral"]["health_state"] == "active_fusion_excluded"
+    assert modalities["behavioral"]["fusion_status"] == "excluded_no_validated_risk_mapping"
     assert "sensitive source content" in payload["privacy"].lower()
 
 

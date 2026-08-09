@@ -180,7 +180,7 @@ def test_verify_selected_profile_and_text_artifacts_pass():
     assert verify_model_artifact(text).passed is True
 
 
-def test_speech_and_face_load_but_are_not_activation_eligible():
+def test_speech_and_face_load_as_runtime_artifacts_but_remain_fusion_excluded():
     speech = ModelRegistry(
         model_name="speech-emotion-random-forest",
         modality="speech",
@@ -201,12 +201,32 @@ def test_speech_and_face_load_but_are_not_activation_eligible():
     speech_result = verify_model_artifact(speech)
     face_result = verify_model_artifact(face)
 
-    assert speech_result.passed is False
-    assert speech_result.failure_code == "PREPROCESSOR_MISSING"
-    assert speech_result.activation_eligible is False
-    assert face_result.passed is False
-    assert face_result.failure_code == "PREPROCESSOR_MISSING"
-    assert face_result.activation_eligible is False
+    assert speech_result.passed is True
+    assert speech_result.activation_eligible is True
+    assert speech_result.details["smoke"]["probability_count"] == 8
+    assert speech_result.details["smoke"]["label_mapping"] == [
+        "angry",
+        "calm",
+        "disgust",
+        "fearful",
+        "happy",
+        "neutral",
+        "sad",
+        "surprised",
+    ]
+
+    assert face_result.passed is True
+    assert face_result.activation_eligible is True
+    assert face_result.details["smoke"]["probability_count"] == 7
+    assert face_result.details["smoke"]["label_mapping"] == [
+        "angry",
+        "disgust",
+        "fear",
+        "happy",
+        "neutral",
+        "sad",
+        "surprise",
+    ]
 
 
 def test_hash_metadata_serializer_and_activation_gates_fail_closed(db_session, tmp_path, monkeypatch):
