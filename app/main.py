@@ -19,6 +19,7 @@ from app.core.errors import (
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import production_middleware
 from app.models.database_models import Base
+from app.runtime_health import operational_checks, validate_startup_requirements
 
 
 configure_logging()
@@ -54,6 +55,20 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc",
 )
+
+
+@app.on_event("startup")
+def startup_validation():
+    checks = validate_startup_requirements()
+    logger.info(
+        "startup_validation_completed",
+        extra={
+            "runtime_result": checks["status"],
+            "environment": settings.ENVIRONMENT,
+            "ffmpeg_available": checks["checks"]["ffmpeg"]["status"] == "ok",
+            "face_detector_available": checks["checks"]["face_detector"].get("available"),
+        },
+    )
 
 # Add CORS middleware - this MUST be added first before other middleware
 app.add_middleware(
@@ -131,14 +146,33 @@ def root():
         "documentation": "/api/docs",
     }
 
-@app.get("/api/health")
+@app.get("/health")
 def health_check():
-    """Health check endpoint"""
+    """Liveness endpoint with safe operational metadata."""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "Suicide Prevention API"
+        "service": "Suicide Prevention API",
+        "environment": settings.ENVIRONMENT,
     }
+
+
+@app.get("/api/health")
+def api_health_check():
+    return health_check()
+
+
+@app.get("/ready")
+def readiness_check():
+    payload = operational_checks()
+    if payload["status"] != "ready":
+        return JSONResponse(status_code=503, content=payload)
+    return payload
+
+
+@app.get("/api/ready")
+def api_readiness_check():
+    return readiness_check()
 
 @app.get("/api/info")
 def api_info():

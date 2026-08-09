@@ -22,7 +22,25 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        for key in ("request_id", "method", "path", "status_code", "duration_ms", "client_ip"):
+        for key in (
+            "request_id",
+            "method",
+            "path",
+            "status_code",
+            "duration_ms",
+            "client_ip",
+            "endpoint",
+            "error_category",
+            "modality",
+            "model_name",
+            "model_version",
+            "runtime_result",
+            "failure_code",
+            "fusion_status",
+            "environment",
+            "ffmpeg_available",
+            "face_detector_available",
+        ):
             value = getattr(record, key, None)
             if value is not None:
                 payload[key] = value
@@ -46,4 +64,3 @@ def configure_logging() -> None:
 def get_logger(name: str) -> logging.Logger:
     configure_logging()
     return logging.getLogger(name)
-

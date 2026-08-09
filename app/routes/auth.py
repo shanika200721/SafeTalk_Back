@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -109,7 +110,18 @@ def login_counselor(credentials: Login, db: Session = Depends(get_db)):
 
 def _login_user(credentials: Login, db: Session, allowed_roles=None):
     """Internal login logic."""
-    user = db.query(User).filter(User.username == credentials.username).first()
+    login_identifier = credentials.username.strip()
+    normalized_identifier = login_identifier.lower()
+    user = (
+        db.query(User)
+        .filter(
+            or_(
+                func.lower(User.username) == normalized_identifier,
+                func.lower(User.email) == normalized_identifier,
+            )
+        )
+        .first()
+    )
 
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(

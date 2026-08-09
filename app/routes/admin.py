@@ -708,6 +708,48 @@ def _profile_admin_payload(db: Session, profile: CounselorProfile) -> dict:
     return data
 
 
+def _counselor_user_admin_payload(db: Session, user: User) -> dict:
+    return {
+        "id": user.id,
+        "counselor_profile_id": None,
+        "user_id": user.id,
+        "university_id": user.university_id,
+        "full_name": user.full_name or user.username,
+        "professional_title": "Counselor",
+        "qualification": None,
+        "specialization": None,
+        "office_name": None,
+        "office_location": None,
+        "telephone_number": None,
+        "whatsapp_number": None,
+        "email": user.email,
+        "available_days": None,
+        "available_from": None,
+        "available_until": None,
+        "accepts_voice_calls": True,
+        "accepts_whatsapp_calls": False,
+        "accepts_whatsapp_messages": True,
+        "emergency_contact_enabled": False,
+        "languages_json": [],
+        "availability_status": "available" if user.is_active else "inactive",
+        "approved": True,
+        "student_visible": True,
+        "active": user.is_active,
+        "university": _serialize_university(user.university) if user.university else None,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+        "registration_number": None,
+        "admin_notes": "Profile details not created yet",
+        "assignment_count": (
+            db.query(CounselorAssignment)
+            .filter(CounselorAssignment.counselor_id == user.id, CounselorAssignment.active.is_(True))
+            .count()
+        ),
+        "unresolved_review_count": int(has_unresolved_reviews(db, user.id)),
+        "profile_missing": True,
+    }
+
+
 @router.post("/universities")
 def create_university(payload: UniversityCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     require_admin(current_user)
@@ -821,7 +863,16 @@ def create_counselor(payload: CounselorCreate, current_user: User = Depends(get_
 def list_counselors(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     require_admin(current_user)
     profiles = db.query(CounselorProfile).order_by(CounselorProfile.full_name.asc()).all()
-    return {"counselors": [_profile_admin_payload(db, profile) for profile in profiles]}
+    profiled_user_ids = {profile.user_id for profile in profiles}
+    missing_profile_users = (
+        db.query(User)
+        .filter(User.role == UserRole.COUNSELOR, ~User.id.in_(profiled_user_ids or [-1]))
+        .order_by(User.full_name.asc())
+        .all()
+    )
+    counselors = [_profile_admin_payload(db, profile) for profile in profiles]
+    counselors.extend(_counselor_user_admin_payload(db, user) for user in missing_profile_users)
+    return {"counselors": sorted(counselors, key=lambda item: (item.get("full_name") or "").lower())}
 
 
 @router.get("/counselors/{counselor_id}")
@@ -1451,6 +1502,8 @@ def transfer_counselor_students(
     require_admin(current_user)
     source = _profile_or_404(db, counselor_id)
     target = _profile_or_404(db, payload.to_counselor_id)
+    if source.user_id == target.user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target counselor must be different from source counselor")
     query = db.query(CounselorAssignment).filter(CounselorAssignment.counselor_id == source.user_id, CounselorAssignment.active.is_(True))
     if payload.student_ids:
         query = query.filter(CounselorAssignment.student_id.in_(payload.student_ids))

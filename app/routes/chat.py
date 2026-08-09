@@ -36,6 +36,10 @@ ALLOWED_AUDIO_MIME_TYPES = {
 }
 ALLOWED_MESSAGE_TYPES = {"text", "system", "attachment", "call"}
 
+
+def _normalize_audio_mime_type(content_type: str | None) -> str:
+    return (content_type or "").split(";", 1)[0].strip().lower()
+
 # ==================== Pydantic Models ====================
 
 class ChatMessageCreate(BaseModel):
@@ -1107,7 +1111,8 @@ def send_voice_message(
             detail={"code": "INVALID_AUDIO_EXTENSION", "message": "Unsupported audio file extension"},
         )
 
-    if audio.content_type not in ALLOWED_AUDIO_MIME_TYPES:
+    normalized_content_type = _normalize_audio_mime_type(audio.content_type)
+    if normalized_content_type not in ALLOWED_AUDIO_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_AUDIO_MIME_TYPE", "message": "Unsupported audio file type"},
@@ -1168,6 +1173,7 @@ def send_voice_message(
             "uploader_user_id": current_user.id,
             "uploader_role": _role_value(current_user),
             "original_mime_type": audio.content_type,
+            "accepted_mime_type": normalized_content_type,
             "normalized_format": extension.lstrip("."),
             "size_bytes": total_bytes,
             "analysis_requested": analyze_emotional_tone,
@@ -1185,7 +1191,7 @@ def send_voice_message(
             chat_message=chat_message,
             student=current_user,
             file_path=file_path,
-            content_type=audio.content_type or "",
+            content_type=normalized_content_type,
             consent_record_id=analysis_consent.id if analysis_consent else None,
             conversation_id=conversation_id,
         )

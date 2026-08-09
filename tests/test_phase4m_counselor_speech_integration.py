@@ -173,6 +173,25 @@ def test_voice_delivery_without_analysis_does_not_require_analysis_consent(clien
     assert client.get(f"/api/chat/messages/{body['id']}/audio", headers=admin_headers).status_code == 403
 
 
+def test_voice_upload_accepts_browser_webm_opus_mime_parameters(client, db_session):
+    student = create_user(db_session, "phase4m-webm-student")
+    counselor = create_user(db_session, "phase4m-webm-counselor", UserRole.COUNSELOR)
+    assign(db_session, student, counselor)
+    student_headers = auth_headers(client, student.username)
+
+    delivered = client.post(
+        "/api/chat/send-voice",
+        data={"receiver_id": str(counselor.id), "analyze_emotional_tone": "false"},
+        files=audio_file(content=b"webm-opus-placeholder", content_type="audio/webm;codecs=opus"),
+        headers=student_headers,
+    )
+
+    assert delivered.status_code == 200
+    message = db_session.query(ChatMessage).filter(ChatMessage.message_type == "voice").one()
+    assert message.metadata_json["original_mime_type"] == "audio/webm;codecs=opus"
+    assert message.metadata_json["accepted_mime_type"] == "audio/webm"
+
+
 def test_voice_analysis_requires_consent_and_remains_unavailable_until_runtime_verified(client, db_session):
     student = create_user(db_session, "phase4m-analysis-student")
     counselor = create_user(db_session, "phase4m-analysis-counselor", UserRole.COUNSELOR)
