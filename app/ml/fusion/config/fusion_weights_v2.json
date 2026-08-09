@@ -1,0 +1,24 @@
+{
+  "config_version": "2.0.0",
+  "experiment": "controlled_synthetic_late_fusion_v2",
+  "initial_weights": {
+    "dass_score": 0.25,
+    "face_score": 0.12,
+    "mood_score": 0.15,
+    "profile_score": 0.1,
+    "speech_score": 0.13,
+    "text_score": 0.25
+  },
+  "missing_modality_strategy": "Use only available modality scores and renormalize by the sum of available weights.",
+  "research_boundary": "technical feasibility evidence only; not clinical validation",
+  "selected_weights": {
+    "dass_score": 0.25,
+    "face_score": 0.12,
+    "mood_score": 0.15,
+    "profile_score": 0.1,
+    "speech_score": 0.13,
+    "text_score": 0.25
+  },
+  "selection_policy": "Small interpretable validation-only adjustment around initial research weights.",
+  "status": "selected_on_validation_only"
+}

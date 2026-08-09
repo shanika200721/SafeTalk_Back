@@ -1,0 +1,17 @@
+{
+  "config_version": "2.0.0",
+  "experiment": "controlled_synthetic_late_fusion_v2",
+  "initial_thresholds": {
+    "high_severe": 0.7,
+    "low_moderate": 0.3,
+    "moderate_high": 0.5
+  },
+  "research_boundary": "research classification thresholds only; not clinical intervention thresholds",
+  "selected_thresholds": {
+    "high_severe": 0.7,
+    "low_moderate": 0.32,
+    "moderate_high": 0.52
+  },
+  "selection_policy": "Nearby thresholds compared on validation macro F1 and balanced accuracy only.",
+  "status": "selected_on_validation_only"
+}

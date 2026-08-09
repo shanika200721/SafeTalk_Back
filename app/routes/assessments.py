@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
+from app.core.config import settings
 from app.models.database_models import (
     User, ProfileAssessment, DASS21Assessment, Assessment, 
     AssessmentHistory, Alert
@@ -20,8 +22,64 @@ from app.utils.assessment_calculator import (
     DailyCheckInCalculator
 )
 from app.utils.dass21_calculator import DASS21Calculator
+from app.services.consent import require_active_consent, require_consents_for_modalities
+from app.services.modalities import (
+    create_dass21_prediction_for_assessment,
+    create_profile_prediction_for_assessment,
+    dass21_metadata_dict,
+    populate_dass21_metadata,
+    trigger_fusion_for_prediction,
+)
 
 router = APIRouter(prefix="/api/assessments", tags=["Assessments"])
+
+
+def _dass21_response(assessment: DASS21Assessment) -> dict:
+    return {
+        "id": assessment.id,
+        "user_id": assessment.user_id,
+        "responses": assessment.responses,
+        "depression_score": assessment.depression_score,
+        "anxiety_score": assessment.anxiety_score,
+        "stress_score": assessment.stress_score,
+        "total_dass21_score": assessment.total_dass21_score,
+        "depression_severity": assessment.depression_severity,
+        "anxiety_severity": assessment.anxiety_severity,
+        "stress_severity": assessment.stress_severity,
+        "created_at": assessment.created_at,
+        "metadata": dass21_metadata_dict(assessment),
+    }
+
+
+def _dass21_alert_level(assessment: DASS21Assessment) -> str:
+    severities = {
+        str(assessment.depression_severity or "").lower(),
+        str(assessment.anxiety_severity or "").lower(),
+        str(assessment.stress_severity or "").lower(),
+    }
+    if any("very" in value or "extreme" in value for value in severities):
+        return "SEVERE"
+    if any("severe" in value for value in severities):
+        return "HIGH"
+    if any("moderate" in value for value in severities):
+        return "MEDIUM"
+    return "LOW"
+
+
+def _create_dass21_submission_alert(db: Session, assessment: DASS21Assessment, *, updated: bool = False) -> None:
+    action = "updated" if updated else "submitted"
+    level = _dass21_alert_level(assessment)
+    if level == "LOW":
+        return
+    db.add(
+        Alert(
+            user_id=assessment.user_id,
+            alert_type="dass21_submission",
+            risk_level=level,
+            message=f"DASS-21 self test {action}. Counselor review is available.",
+            is_read=False,
+        )
+    )
 
 # ==================== Profile Assessment ====================
 
@@ -32,6 +90,7 @@ def create_profile_assessment(
     db: Session = Depends(get_db)
 ):
     """Create or update profile assessment for user"""
+    require_active_consent(db, current_user, "profile_processing", "submitting profile assessments")
     
     # Check if user owns this assessment
     if assessment_data.user_id != current_user.id and current_user.role.value != "admin":
@@ -55,14 +114,18 @@ def create_profile_assessment(
         for key, value in profile_dict.items():
             if key != 'user_id':
                 setattr(existing, key, value)
-        db.commit()
+        db.flush()
+        prediction = create_profile_prediction_for_assessment(db, existing)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="legacy_profile_assessment", actor=current_user)
         db.refresh(existing)
         return existing
     else:
         # Create new
         db_assessment = ProfileAssessment(**profile_dict)
         db.add(db_assessment)
-        db.commit()
+        db.flush()
+        prediction = create_profile_prediction_for_assessment(db, db_assessment)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="legacy_profile_assessment", actor=current_user)
         db.refresh(db_assessment)
         return db_assessment
 
@@ -108,6 +171,7 @@ def create_dass21_assessment(
         "responses": [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 1]
     }
     """
+    require_active_consent(db, current_user, "dass21_processing", "submitting DASS-21 assessments")
     
     try:
         resp_list = request.responses
@@ -135,19 +199,23 @@ def create_dass21_assessment(
             anxiety_severity=dass21_result["anxiety_severity"],
             stress_severity=dass21_result["stress_severity"]
         )
+        populate_dass21_metadata(db_assessment)
         
         db.add(db_assessment)
-        db.commit()
+        db.flush()
+        prediction = create_dass21_prediction_for_assessment(db, db_assessment)
+        _create_dass21_submission_alert(db, db_assessment)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="dass21_submission", actor=current_user)
         db.refresh(db_assessment)
         
-        return db_assessment
+        return _dass21_response(db_assessment)
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to process DASS21 assessment: {str(e)}"
+            detail="Failed to process DASS21 assessment"
         )
 
 @router.get("/dass21/latest")
@@ -176,7 +244,8 @@ def get_latest_dass21(
         "depression_severity": assessment.depression_severity,
         "anxiety_severity": assessment.anxiety_severity,
         "stress_severity": assessment.stress_severity,
-        "created_at": assessment.created_at
+        "created_at": assessment.created_at,
+        "metadata": dass21_metadata_dict(assessment),
     }
 
 @router.get("/dass21/history")
@@ -200,7 +269,8 @@ def get_dass21_history(
                 "depression_score": a.depression_score,
                 "anxiety_score": a.anxiety_score,
                 "stress_score": a.stress_score,
-                "created_at": a.created_at
+                "created_at": a.created_at,
+                "metadata": dass21_metadata_dict(a),
             }
             for a in assessments
         ]
@@ -218,7 +288,7 @@ def get_today_dass21(
     
     assessment = db.query(DASS21Assessment).filter(
         DASS21Assessment.user_id == current_user.id,
-        db.func.date(DASS21Assessment.created_at) == today
+        func.date(DASS21Assessment.created_at) == today
     ).first()
     
     if not assessment:
@@ -237,7 +307,8 @@ def get_today_dass21(
         "depression_severity": assessment.depression_severity,
         "anxiety_severity": assessment.anxiety_severity,
         "stress_severity": assessment.stress_severity,
-        "created_at": assessment.created_at
+        "created_at": assessment.created_at,
+        "metadata": dass21_metadata_dict(assessment),
     }
 
 @router.put("/dass21/{assessment_id}", response_model=DASS21Response)
@@ -248,6 +319,7 @@ def update_dass21_assessment(
     db: Session = Depends(get_db)
 ):
     """Update an existing DASS21 assessment (only own assessments)"""
+    require_active_consent(db, current_user, "dass21_processing", "updating DASS-21 assessments")
     
     try:
         # Get the assessment
@@ -283,18 +355,22 @@ def update_dass21_assessment(
         assessment.depression_severity = dass21_result["depression_severity"]
         assessment.anxiety_severity = dass21_result["anxiety_severity"]
         assessment.stress_severity = dass21_result["stress_severity"]
+        populate_dass21_metadata(assessment)
         
-        db.commit()
+        db.flush()
+        prediction = create_dass21_prediction_for_assessment(db, assessment)
+        _create_dass21_submission_alert(db, assessment, updated=True)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="dass21_update", actor=current_user)
         db.refresh(assessment)
         
-        return assessment
+        return _dass21_response(assessment)
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to update DASS21 assessment: {str(e)}"
+            detail="Failed to update DASS21 assessment"
         )
 
 # ==================== Multimodal Risk Assessment ====================
@@ -306,6 +382,15 @@ async def perform_risk_assessment(
     db: Session = Depends(get_db)
 ):
     """Perform comprehensive multimodal risk assessment"""
+    if not settings.LEGACY_RISK_ASSESSMENT_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail={
+                "code": "LEGACY_RISK_ASSESSMENT_DEPRECATED",
+                "message": "The legacy raw-score risk assessment route is disabled by default. Use /api/fusion/assess for controlled canonical fusion.",
+                "replacement": "/api/fusion/assess",
+            },
+        )
     
     try:
         # Verify user ID matches
@@ -317,6 +402,25 @@ async def perform_risk_assessment(
         
         # Convert scores to dict
         scores_dict = request.scores.dict()
+        required_consents = []
+        score_consent_map = {
+            "profile_score": "profile_processing",
+            "mood_score": "mood_processing",
+            "dass21_score": "dass21_processing",
+            "text_score": "text_processing",
+            "voice_score": "voice_processing",
+            "face_score": "face_processing",
+            "behavioral_score": "behavioral_processing",
+        }
+        for score_name, consent_type in score_consent_map.items():
+            if scores_dict.get(score_name, 0) > 0:
+                required_consents.append(consent_type)
+        require_consents_for_modalities(
+            db,
+            current_user,
+            required_consents,
+            "running automated risk assessment",
+        )
         
         # Use existing risk assessor
         assessment = risk_assessor.assess(
@@ -369,8 +473,10 @@ async def perform_risk_assessment(
             "modality_breakdown": assessment['modality_breakdown']
         }
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to perform risk assessment")
 
 @router.get("/history/{user_id}")
 def get_assessment_history(

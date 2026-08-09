@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     UPLOAD_ROOT: str = Field("./uploaded_audio", env="UPLOAD_ROOT")
     REDIS_URL: str = Field("redis://localhost:6379/0", env="REDIS_URL")
     ENVIRONMENT: str = Field("development", env="ENVIRONMENT")
+    LEGACY_RISK_ASSESSMENT_ENABLED: bool = Field(False, env="LEGACY_RISK_ASSESSMENT_ENABLED")
 
     @validator("CORS_ORIGINS", pre=True)
     def parse_cors_origins(cls, value):
@@ -37,6 +38,14 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() == "production"
+
+    def validate_production_safety(self) -> None:
+        if not self.is_production:
+            return
+        if self.SECRET_KEY == "change-me-in-your-local-env":
+            raise RuntimeError("SECRET_KEY must be set before running in production")
+        if "*" in self.CORS_ORIGINS:
+            raise RuntimeError("CORS_ORIGINS must be restricted before running in production")
 
     class Config:
         env_file = ".env"
