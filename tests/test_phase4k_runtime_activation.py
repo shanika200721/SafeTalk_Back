@@ -141,6 +141,22 @@ def test_safetalk_conversation_reopens_and_continues_without_mixing(client, db_s
     assert any(item["id"] == first and item["message_count"] == 2 for item in conversations)
 
 
+def test_safetalk_student_message_does_not_create_text_modality_prediction(client, db_session):
+    student = create_user(db_session, "phase4v-safetalk-text")
+    grant_consent(db_session, student, "text_processing")
+    headers = auth_headers(client, student.username)
+
+    response = client.post(
+        "/api/bot/safetalk/chat",
+        json={"message": "I feel sad and want someone to talk to."},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert db_session.query(SafeTalkBotMessage).count() == 1
+    assert db_session.query(ModalityPrediction).filter(ModalityPrediction.modality == "text").count() == 0
+
+
 def test_safetalk_response_quality_variants_and_crisis_priority():
     greeting = route_safetalk_message("hiii")
     birthday = route_safetalk_message("today is my birthday but no one wished me")

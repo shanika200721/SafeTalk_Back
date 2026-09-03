@@ -450,6 +450,9 @@ def _safe_evidence_source(prediction: ModalityPrediction) -> dict:
     if prediction.source_type == "journal_entry":
         source["display"] = "consented journal text prediction"
         source["raw_body_included"] = False
+    if prediction.source_type == "counselor_chat_text_message":
+        source["display"] = "consented student counselor-chat text prediction"
+        source["raw_message_included"] = False
     return source
 
 

@@ -15,6 +15,7 @@ from app.db.base import Base
 from app.ml.preprocessing.face.constants import CANONICAL_EMOTION_LABELS, FACE_STATISTIC_COLUMNS
 from app.ml.runtime.behavioral import predict_behavioral_signal
 from app.ml.runtime.face import FACE_RISK_MAPPING_STATUS, FaceRuntimeLoader
+from app.ml.runtime.face_detector import FaceDetectionResult
 from app.models.database_models import DailyCheckIn, JournalEntry, ModelRegistry, User, UserRole
 from app.security import hash_password
 from app.services.fusion import run_controlled_fusion
@@ -176,6 +177,14 @@ def test_face_runtime_outputs_emotion_probabilities_and_fusion_exclusion(monkeyp
     )
     loader = FaceRuntimeLoader()
     monkeypatch.setattr(loader, "load_model", lambda model: FakeFaceModel())
+    monkeypatch.setattr(
+        "app.ml.runtime.face.detect_single_face",
+        lambda path: FaceDetectionResult(
+            status="one_face_detected",
+            face_count=1,
+            bounding_boxes=[{"x": 8, "y": 8, "width": 80, "height": 80}],
+        ),
+    )
 
     result = loader.predict(registry, {"image_data_url": _face_data_url()})
 
@@ -183,5 +192,6 @@ def test_face_runtime_outputs_emotion_probabilities_and_fusion_exclusion(monkeyp
     assert set(result.probabilities) == set(CANONICAL_EMOTION_LABELS)
     assert pytest.approx(sum(result.probabilities.values()), abs=1e-9) == 1.0
     assert result.metadata["feature_shape"] == [1, 5]
+    assert result.metadata["face_detection_status"] == "one_face_detected"
     assert result.metadata["fusion_status"] == FACE_RISK_MAPPING_STATUS
     assert result.metadata["fusion_eligible"] is False

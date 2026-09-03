@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.database_models import User, UserRole as DbUserRole
+from app.models.database_models import University, User, UserRole as DbUserRole
 from app.schemas import Login, Token, User as UserSchema, UserCreate, UserLookup, UserUpdate
 from app.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -39,6 +40,31 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
+@router.get("/universities")
+def list_registration_universities(db: Session = Depends(get_db)):
+    """List active universities for public student registration."""
+    universities = (
+        db.query(University)
+        .filter(University.active.is_(True))
+        .order_by(University.university_name.asc(), University.campus_name.asc())
+        .all()
+    )
+    return {
+        "universities": [
+            {
+                "id": university.id,
+                "university_name": university.university_name,
+                "university": university.university_name,
+                "university_code": university.university_code,
+                "campus_name": university.campus_name,
+                "campus": university.campus_name,
+                "district": university.district,
+            }
+            for university in universities
+        ]
+    }
+
+
 @router.post("/register", response_model=UserSchema)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a public student account."""
@@ -64,12 +90,25 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
                 detail="Email or username already registered",
             )
 
+        if user_data.university_id:
+            university = (
+                db.query(University)
+                .filter(University.id == user_data.university_id, University.active.is_(True))
+                .first()
+            )
+            if not university:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Selected university is not available",
+                )
+
         db_user = User(
             email=user_data.email,
             username=user_data.username,
             full_name=user_data.full_name,
             hashed_password=hash_password(user_data.password),
             role=DbUserRole.STUDENT,
+            university_id=user_data.university_id,
             department=user_data.department,
             year_of_study=user_data.year_of_study,
         )
@@ -109,7 +148,18 @@ def login_counselor(credentials: Login, db: Session = Depends(get_db)):
 
 def _login_user(credentials: Login, db: Session, allowed_roles=None):
     """Internal login logic."""
-    user = db.query(User).filter(User.username == credentials.username).first()
+    login_identifier = credentials.username.strip()
+    normalized_identifier = login_identifier.lower()
+    user = (
+        db.query(User)
+        .filter(
+            or_(
+                func.lower(User.username) == normalized_identifier,
+                func.lower(User.email) == normalized_identifier,
+            )
+        )
+        .first()
+    )
 
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
@@ -148,6 +198,7 @@ def _login_user(credentials: Login, db: Session, allowed_roles=None):
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role.value,
+            "university_id": user.university_id,
             "department": user.department,
             "year_of_study": user.year_of_study,
             "is_active": user.is_active,

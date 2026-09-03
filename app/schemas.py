@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     username: str
     full_name: str
     role: UserRole = UserRole.STUDENT
+    university_id: Optional[int] = None
     department: Optional[str] = None
     year_of_study: Optional[int] = None
 
