@@ -13,6 +13,7 @@ from app.ml.preprocessing.face.constants import CANONICAL_EMOTION_LABELS, FACE_S
 from app.ml.preprocessing.face.features import extract_lightweight_image_statistics
 from app.ml.preprocessing.face.image_io import extract_image_metadata
 from app.ml.runtime.base import BaseRuntimeLoader, RuntimeInferenceError, RuntimePredictionResult
+from app.ml.runtime.face_detector import FaceDetectionError, FaceDetectorUnavailable, detect_single_face
 from app.models.database_models import ModelRegistry
 
 
@@ -62,6 +63,9 @@ def _decode_data_url(data_url: str) -> Path:
 
 
 def _resolve_image_source(payload: dict[str, Any]) -> tuple[Path, bool, str]:
+    content_type = str(payload.get("content_type") or "").lower().split(";")[0].strip()
+    if content_type and content_type not in {"image/jpeg", "image/jpg", "image/png"}:
+        raise FacePreprocessingError("Face image content type is not supported.")
     data_url = payload.get("image_data_url")
     if data_url:
         return _decode_data_url(str(data_url)), True, "browser_data_url"
@@ -80,6 +84,12 @@ def extract_verified_face_features(path: str | Path) -> tuple[dict[str, float], 
         raise FacePreprocessingError("Face image dimensions are below the minimum runtime size.")
     if metadata.file_size_bytes > 2 * 1024 * 1024:
         raise FacePreprocessingError("Face image exceeds the maximum accepted size.")
+    try:
+        detection = detect_single_face(source)
+    except FaceDetectorUnavailable as exc:
+        raise FacePreprocessingError("Face detector dependency is unavailable; face runtime fails closed.") from exc
+    except FaceDetectionError as exc:
+        raise FacePreprocessingError(str(exc)) from exc
 
     features, warnings = extract_lightweight_image_statistics(source)
     missing = [name for name in FACE_STATISTIC_COLUMNS if name not in features]
@@ -97,8 +107,10 @@ def extract_verified_face_features(path: str | Path) -> tuple[dict[str, float], 
         "file_size_bytes": metadata.file_size_bytes,
         "image_validation_warnings": metadata.validation_warnings,
         "feature_warnings": warnings,
-        "face_detection_status": "not_available_no_detector_dependency",
-        "face_detection_limitation": "No OpenCV/landmark detector dependency is configured; runtime treats the explicit capture as the candidate face crop.",
+        "face_detection_status": detection.status,
+        "face_count": detection.face_count,
+        "face_bounding_boxes": detection.bounding_boxes,
+        "face_detector": detection.detector,
     }
 
 

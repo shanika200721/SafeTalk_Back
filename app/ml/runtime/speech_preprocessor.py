@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from app.core.config import settings
 from app.ml.preprocessing.speech.audio_io import load_wav_audio, write_generated_wav
 from app.ml.preprocessing.speech.constants import FEATURE_COLUMNS, SPEECH_FEATURE_SCHEMA_VERSION, SPEECH_PREPROCESSING_VERSION
 from app.ml.preprocessing.speech.features import extract_acoustic_features
@@ -59,7 +60,35 @@ class SpeechQualityResult:
 
 
 def ffmpeg_executable() -> str | None:
-    return shutil.which("ffmpeg")
+    configured = (settings.FFMPEG_BINARY or "ffmpeg").strip()
+    if not configured:
+        return None
+    configured_path = Path(configured)
+    if configured_path.is_absolute() or configured_path.parent != Path("."):
+        return str(configured_path) if configured_path.exists() and configured_path.is_file() else None
+    return shutil.which(configured)
+
+
+def ffmpeg_version() -> dict[str, object]:
+    executable = ffmpeg_executable()
+    if not executable:
+        return {"available": False, "executable": None, "version": None}
+    try:
+        completed = subprocess.run(
+            [executable, "-version"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except Exception:
+        return {"available": False, "executable": executable, "version": None}
+    first_line = (completed.stdout or completed.stderr or "").splitlines()
+    return {
+        "available": completed.returncode == 0,
+        "executable": executable,
+        "version": first_line[0][:120] if first_line else None,
+    }
 
 
 def _is_browser_container(path: Path, content_type: str | None) -> bool:

@@ -5,14 +5,22 @@ from sqlalchemy import or_, and_
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from app.database import get_db
-from app.models.database_models import CounselorAssignment, User, ChatMessage, UserRole
+from app.models.database_models import CounselorAssignment, User, ChatMessage, ModalityPrediction, UserRole
 from app.routes.auth import get_current_user
 from app.services.consent import get_latest_consent
 from app.ml.runtime.base import RuntimeInferenceError, RuntimeModelUnavailable
+from app.ml.runtime.registry import predict_with_active_model
 from app.ml.runtime.speech import SPEECH_RISK_MAPPING_STATUS, SPEECH_RUNTIME_LIMITATION, SpeechRuntimeLoader
 from app.ml.runtime.speech_preprocessor import SpeechPreprocessingError, validate_speech_audio_quality
 from app.services.model_registry import get_active_model
-from app.services.modalities import create_feature_snapshot, create_prediction, create_unavailable_prediction, trigger_fusion_for_prediction
+from app.services.modalities import (
+    MODEL_EVIDENCE,
+    create_failed_prediction,
+    create_feature_snapshot,
+    create_prediction,
+    create_unavailable_prediction,
+    trigger_fusion_for_prediction,
+)
 from app.services.counselor_workflow import has_active_assignment, is_counselor_role
 from pydantic import BaseModel
 from pathlib import Path
@@ -35,6 +43,10 @@ ALLOWED_AUDIO_MIME_TYPES = {
     "audio/x-m4a",
 }
 ALLOWED_MESSAGE_TYPES = {"text", "system", "attachment", "call"}
+
+
+def _normalize_audio_mime_type(content_type: str | None) -> str:
+    return (content_type or "").split(";", 1)[0].strip().lower()
 
 # ==================== Pydantic Models ====================
 
@@ -196,6 +208,13 @@ def _analysis_consent_record(db: Session, user: User):
     return None
 
 
+def _text_analysis_consent_record(db: Session, user: User):
+    consent = get_latest_consent(db, user.id, "text_processing")
+    if consent and consent.is_granted and consent.withdrawn_at is None:
+        return consent
+    return None
+
+
 def _speech_failure_code(status_value: str) -> str:
     return {
         "too_short": "AUDIO_TOO_SHORT",
@@ -335,6 +354,137 @@ def _persist_speech_analysis(
             "feature_shape": metadata.get("feature_shape"),
         },
     )
+
+
+def _persist_student_chat_text_analysis(
+    db: Session,
+    *,
+    chat_message: ChatMessage,
+    student: User,
+    counselor: User,
+    consent_record_id: int,
+    conversation_id: str,
+):
+    existing = (
+        db.query(ModalityPrediction)
+        .filter(
+            ModalityPrediction.modality == "text",
+            ModalityPrediction.source_type == "counselor_chat_text_message",
+            ModalityPrediction.source_record_id == chat_message.id,
+        )
+        .order_by(ModalityPrediction.created_at.desc(), ModalityPrediction.id.desc())
+        .first()
+    )
+    if existing:
+        return existing
+
+    text = (chat_message.message or "").strip()
+    snapshot = create_feature_snapshot(
+        db,
+        student_id=student.id,
+        modality="text",
+        source_type="counselor_chat_text_message",
+        source_record_id=chat_message.id,
+        source_timestamp=chat_message.created_at,
+        feature_schema_version=MODEL_EVIDENCE["text"]["schema"],
+        preprocessing_version=MODEL_EVIDENCE["text"]["preprocessing"],
+        features_json={
+            "text_length": len(text),
+            "contains_raw_text": False,
+            "source_type": "counselor_chat_text_message",
+        },
+        metadata_json={
+            "raw_text_stored_in_feature_snapshot": False,
+            "student_authored": True,
+            "bot_generated": False,
+            "counselor_authored": False,
+        },
+    )
+    active_model = None
+    try:
+        active_model, result = predict_with_active_model(db, modality="text", payload={"text": text})
+        snapshot.feature_schema_version = active_model.feature_schema_version or snapshot.feature_schema_version
+        snapshot.preprocessing_version = active_model.preprocessing_version or snapshot.preprocessing_version
+        snapshot.features_json = result.features
+        return create_prediction(
+            db,
+            student_id=student.id,
+            modality="text",
+            status_value="succeeded",
+            is_available=True,
+            output_type="machine_learning",
+            source_type="counselor_chat_text_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+            feature_snapshot=snapshot,
+            probability=result.probability,
+            confidence=result.confidence,
+            label=result.label,
+            raw_output_json={"class_probabilities": result.probabilities},
+            metadata_json={
+                **result.metadata,
+                "class_probabilities": result.probabilities,
+                "source_type": "counselor_chat_text_message",
+                "conversation_reference": conversation_id,
+                "counselor_id": counselor.id,
+                "analysis_consent_record_id": consent_record_id,
+                "student_authored": True,
+                "bot_generated": False,
+                "counselor_authored": False,
+                "raw_text_stored": False,
+                "selection_policy": "most_recent_valid_text_prediction",
+            },
+            model_registry=active_model,
+        )
+    except RuntimeModelUnavailable:
+        prediction = create_unavailable_prediction(
+            db,
+            user=student,
+            modality="text",
+            failure_code="MODEL_NOT_ACTIVE",
+            message="The trained text modality model is not active in the runtime API.",
+            source_type="counselor_chat_text_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+            feature_snapshot=snapshot,
+        )
+        prediction.metadata_json = {
+            **(prediction.metadata_json or {}),
+            "source_type": "counselor_chat_text_message",
+            "conversation_reference": conversation_id,
+            "counselor_id": counselor.id,
+            "analysis_consent_record_id": consent_record_id,
+            "student_authored": True,
+            "bot_generated": False,
+            "counselor_authored": False,
+            "raw_text_stored": False,
+        }
+        return prediction
+    except RuntimeInferenceError:
+        prediction = create_failed_prediction(
+            db,
+            user=student,
+            modality="text",
+            failure_code="INFERENCE_FAILED",
+            message="The active text runtime model could not safely analyze this counselor-chat message.",
+            source_type="counselor_chat_text_message",
+            source_record_id=chat_message.id,
+            source_timestamp=chat_message.created_at,
+            feature_snapshot=snapshot,
+            model_registry=active_model,
+        )
+        prediction.metadata_json = {
+            **(prediction.metadata_json or {}),
+            "source_type": "counselor_chat_text_message",
+            "conversation_reference": conversation_id,
+            "counselor_id": counselor.id,
+            "analysis_consent_record_id": consent_record_id,
+            "student_authored": True,
+            "bot_generated": False,
+            "counselor_authored": False,
+            "raw_text_stored": False,
+        }
+        return prediction
     return create_prediction(
         db,
         student_id=student.id,
@@ -565,7 +715,10 @@ def send_message(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported message type")
     if message_data.message_type == "text" and not message_data.message.strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message cannot be empty")
-    _authorize_direct_chat(db, current_user, receiver)
+    student, counselor = _authorize_direct_chat(db, current_user, receiver)
+    text_analysis_consent = None
+    if message_data.message_type == "text" and current_user.id == student.id:
+        text_analysis_consent = _text_analysis_consent_record(db, current_user)
     
     # Create message
     chat_message = ChatMessage(
@@ -573,11 +726,42 @@ def send_message(
         receiver_id=message_data.receiver_id,
         message=message_data.message,
         message_type=message_data.message_type,
+        ai_analysis_requested=bool(text_analysis_consent),
+        ai_analysis_status="pending" if text_analysis_consent else "not_requested",
         sent_at=datetime.utcnow(),
         delivery_status="sent",
+        metadata_json={
+            "conversation_id": _conversation_pair_id(student.id, counselor.id),
+            "student_id": student.id,
+            "counselor_id": counselor.id,
+            "sender_role": _role_value(current_user),
+            "text_analysis_consent_record_id": text_analysis_consent.id if text_analysis_consent else None,
+            "delivery_independent_from_inference": True,
+        },
     )
     
     db.add(chat_message)
+    db.flush()
+
+    if text_analysis_consent:
+        prediction = _persist_student_chat_text_analysis(
+            db,
+            chat_message=chat_message,
+            student=student,
+            counselor=counselor,
+            consent_record_id=text_analysis_consent.id,
+            conversation_id=_conversation_pair_id(student.id, counselor.id),
+        )
+        chat_message.ai_prediction_id = prediction.id
+        chat_message.ai_analysis_status = (
+            "succeeded"
+            if prediction.status == "succeeded"
+            else "unavailable"
+            if prediction.status == "unavailable"
+            else "failed"
+        )
+        trigger_fusion_for_prediction(db, prediction, trigger_source="counselor_chat_text_analysis", actor=current_user)
+
     db.commit()
     db.refresh(chat_message)
     
@@ -1107,7 +1291,8 @@ def send_voice_message(
             detail={"code": "INVALID_AUDIO_EXTENSION", "message": "Unsupported audio file extension"},
         )
 
-    if audio.content_type not in ALLOWED_AUDIO_MIME_TYPES:
+    normalized_content_type = _normalize_audio_mime_type(audio.content_type)
+    if normalized_content_type not in ALLOWED_AUDIO_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_AUDIO_MIME_TYPE", "message": "Unsupported audio file type"},
@@ -1168,6 +1353,7 @@ def send_voice_message(
             "uploader_user_id": current_user.id,
             "uploader_role": _role_value(current_user),
             "original_mime_type": audio.content_type,
+            "accepted_mime_type": normalized_content_type,
             "normalized_format": extension.lstrip("."),
             "size_bytes": total_bytes,
             "analysis_requested": analyze_emotional_tone,
@@ -1185,7 +1371,7 @@ def send_voice_message(
             chat_message=chat_message,
             student=current_user,
             file_path=file_path,
-            content_type=audio.content_type or "",
+            content_type=normalized_content_type,
             consent_record_id=analysis_consent.id if analysis_consent else None,
             conversation_id=conversation_id,
         )
