@@ -1,0 +1,27 @@
+{
+  "config_hash": "02f7c9cf4f8079dc61d3d5a148ed696de0cd94b6a0ec93b17734da658b6b0959",
+  "created_at": "2026-07-15T15:13:02.417486+00:00",
+  "dataset_version": "1.0.0",
+  "feature_schema_version": "1.0.0",
+  "file_hashes": {
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/metrics.json": "8b328fa0697d8e13260668ef16331f0effd631d0cafa494fcedebb7cdcce793f",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/model.joblib": "0b6759d714107e1e27833011fe30de8e1ce288ab4eed600ee092beb8cb60e89c",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/model_card.md": "69f630313f69fdf3c9b19402f58fb2f2643921d06515daaa46a5476f5d0d92ae",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/reproducibility_report.json": "ecbcb2f1b2c3540536e202cc1503a35505b7110030e22c4d129fd43e26048d39",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/training_config.json": "2ccac5c7538c452d7cd9f69f922f030ef0813ec5cd3cc1f88b6396772433b18d"
+  },
+  "files": [
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/model.joblib",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/metrics.json",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/model_card.md",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/training_config.json",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-75322e07-5889-1a2c-caa9-4e4f98ff543d/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "synthetic",
+  "model_name": "synthetic-smoke-baseline",
+  "model_version": "1.0.0-multiclass",
+  "preprocessing_version": "1.0.0",
+  "run_id": "run-75322e07-5889-1a2c-caa9-4e4f98ff543d",
+  "split_manifest_hash": "0ea97a00ffb8a470b6bece076749535fe808bfdf419fc868d096706c5c1560bf"
+}

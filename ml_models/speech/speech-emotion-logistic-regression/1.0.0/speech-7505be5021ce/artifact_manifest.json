@@ -1,0 +1,45 @@
+{
+  "active": false,
+  "config_hash": "7505be5021ce8881548c3d41582c12d3a0f4c41d5f7e51efdcca00711c534139",
+  "corpus_fingerprints": {
+    "CREMA": "7f4c5e6eb67533534a4c286329e706c08f24f6e148d4df8e709647ec3b1720b5",
+    "RAVDESS": "36f177cd8eaffd44d07438437f753ec39308ccb26d598af3308252d919506f83",
+    "SAVEE": "bfc379ed6ffe131b5ee654898e060870e400c13698f0b8f7d18eb3f5224cc7a8",
+    "TESS": "6062a243ad986ef8ddc9144c787a48266c7ccce03549fe2d585aeb99e6b34871"
+  },
+  "created_at": "2026-07-15T13:31:23.048384+00:00",
+  "feature_file_hash": "41f585e4b0e552039d45c776247cc96065216996e4745964cecbc09815546a53",
+  "feature_set": "full_acoustic",
+  "file_hashes": {
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/candidate_comparison.csv": "81a13e1e5d45d919698c838d986e443d9c27a7befa2d4a5bee6af26e24c1f717",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/feature_schema.json": "d539b61119d546c934a878a8d0f3e01490f0d0c429e669bcd2e14ab00a7669d2",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/metrics.json": "a657c520f13a54e868f93ea8300c0602e21e6ae1c354404cae086f112f9dc31e",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/model.joblib": "d74c192a377cc7a989227955b9bb269486313cf9eb59ae9778345cecfb12c92f",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/model_card.md": "f2f4c8216a037a21976c03f0ac2ccc4df16f6a5df71a0fca037e14855b10d977",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/pipeline.joblib": "5ad4ee1471ce3827df13dd9105859f10a24c430ca2e0a9237dc4f5e74a01dabf",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/preprocessor.joblib": "c961bf833b27951046e05cac9d87e3892ed6945df494656e3411ec374f69577a",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/reproducibility_report.json": "6213442a49c51b0aa51f203dd9278de6f02a9adc0a0bdd95cac92608335dd37b",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/split_manifest_reference.json": "a28b530e0b2f7c87bbd7a502d5ce07036fa6d9d5fd8c466e798d32a2b4a314c6",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/training_config.json": "94dc8d3dd578932329d4a5c084164260067ec2e65ea50870883dba2b9c7b7796"
+  },
+  "files": [
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/model.joblib",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/preprocessor.joblib",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/pipeline.joblib",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/training_config.json",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/metrics.json",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/candidate_comparison.csv",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/feature_schema.json",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/split_manifest_reference.json",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/model_card.md",
+    "ml_models/speech/speech-emotion-logistic-regression/1.0.0/speech-7505be5021ce/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "speech",
+  "model_name": "speech-emotion-logistic-regression",
+  "model_version": "1.0.0",
+  "preprocessing_artifact_hash": "bc1d4e2cc6f09ba58b0704bd611fdff58b27f2acd0b80722eb4d53296e4e9eaa",
+  "run_id": "speech-7505be5021ce",
+  "source_fingerprint": "969b0db4f647d9af9896d1c846548a7e06a8ed5ba2d8509fe4c3d1b838e4e3c8",
+  "split_manifest_hash": "a28b530e0b2f7c87bbd7a502d5ce07036fa6d9d5fd8c466e798d32a2b4a314c6"
+}

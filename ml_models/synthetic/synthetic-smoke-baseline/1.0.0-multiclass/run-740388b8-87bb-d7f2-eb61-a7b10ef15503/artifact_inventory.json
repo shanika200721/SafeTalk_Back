@@ -1,0 +1,47 @@
+[
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/artifact_manifest.json",
+    "sha256": "14e941ec3ec7545aedd20ea8fa0bce772ce4601a2d225e51a2cf61df4211240d",
+    "size_bytes": 2218
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/metrics.json",
+    "sha256": "8b328fa0697d8e13260668ef16331f0effd631d0cafa494fcedebb7cdcce793f",
+    "size_bytes": 3754
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/model.joblib",
+    "sha256": "0b6759d714107e1e27833011fe30de8e1ce288ab4eed600ee092beb8cb60e89c",
+    "size_bytes": 1519
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/model_card.json",
+    "sha256": "350c3ded3fff72f4bb98aeb4025ea98d35d909c4996f7748d472981d6686196f",
+    "size_bytes": 6163
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/model_card.md",
+    "sha256": "3cceac77ff37d4f08906e6cf68cff25076fe5d8e92d7d99135737d6aacd9a060",
+    "size_bytes": 5466
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/reproducibility_report.json",
+    "sha256": "fb41a81857b19e8c046131934c06185fd81552a50e90047568972a6a8eb32e88",
+    "size_bytes": 533
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/training_config.json",
+    "sha256": "c98cb5a1a75ea5ba6fc2910b518d79ec20e0efbd6fea9b4e99f1f746975c42f7",
+    "size_bytes": 1168
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/training_summary.json",
+    "sha256": "319d5fb97ab5b3b8b863a7065a7ee460a2d5608f89949355bd1ac4091e03b7dc",
+    "size_bytes": 6458
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-740388b8-87bb-d7f2-eb61-a7b10ef15503/training_summary.md",
+    "sha256": "739b41958f897dac7c8266f86e12603dcbaa1d9ab661a0f3bd535a65ab046513",
+    "size_bytes": 4382
+  }
+]

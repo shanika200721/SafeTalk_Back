@@ -1,0 +1,137 @@
+{
+  "test": {
+    "accuracy": 0.6,
+    "balanced_accuracy": 0.7,
+    "confidence_intervals": {
+      "accuracy": {
+        "bootstrap_samples": 1991,
+        "lower_95": 0.3333333333333333,
+        "upper_95": 0.8
+      },
+      "balanced_accuracy": {
+        "bootstrap_samples": 1991,
+        "lower_95": 0.55,
+        "upper_95": 0.85
+      },
+      "f1": {
+        "bootstrap_samples": 1991,
+        "lower_95": 0.2857142857142857,
+        "upper_95": 0.8571428571428571
+      },
+      "pr_auc": {
+        "bootstrap_samples": 1991,
+        "lower_95": 0.19088319088319092,
+        "upper_95": 0.8976190476190475
+      },
+      "precision": {
+        "bootstrap_samples": 1991,
+        "lower_95": 0.16666666666666666,
+        "upper_95": 0.75
+      },
+      "recall": {
+        "bootstrap_samples": 1991,
+        "lower_95": 1.0,
+        "upper_95": 1.0
+      },
+      "roc_auc": {
+        "bootstrap_samples": 1991,
+        "lower_95": 0.38636363636363635,
+        "upper_95": 0.9444444444444444
+      }
+    },
+    "confusion_matrix": {
+      "fn": 0,
+      "fp": 6,
+      "labels": [
+        "no",
+        "yes"
+      ],
+      "matrix": [
+        [
+          4,
+          6
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "tn": 4,
+      "tp": 5
+    },
+    "created_at": "2026-07-17T17:04:23.369943+00:00",
+    "dataset_fingerprint": "eb3cc7476160afc49ed608c988c0bb9a7e723237aa4c6f67a6a85dd37c8e0ff8",
+    "development_rows": 86,
+    "f1": 0.625,
+    "macro_f1": 0.5982142857142857,
+    "macro_precision": 0.7272727272727273,
+    "macro_recall": 0.7,
+    "pr_auc": 0.5547979797979798,
+    "precision": 0.45454545454545453,
+    "predicted_distribution": {
+      "no": 4,
+      "yes": 11
+    },
+    "random_seed": 42,
+    "recall": 1.0,
+    "roc_auc": 0.69,
+    "selected_model": "logistic_balanced_C1",
+    "selection_metric": "development repeated-stratified-CV macro F1",
+    "source_fingerprint": "c0d1300dd5225b426f91ee75c81e5068efdadf528416628994a5a6e013063f0a",
+    "specificity": 0.4,
+    "split": "test",
+    "support": {
+      "no": 10,
+      "total": 15,
+      "yes": 5
+    },
+    "test_rows": 15,
+    "threshold": 0.49999999999999994,
+    "warnings": [
+      "The held-out test set contains only 15 records; confidence intervals are wide and unstable.",
+      "Target is self-reported depression, not suicide-risk ground truth."
+    ],
+    "weighted_f1": 0.5892857142857142,
+    "weighted_precision": 0.8181818181818182,
+    "weighted_recall": 0.6
+  },
+  "threshold_selection": {
+    "chosen_strategy": "max_macro_f1",
+    "chosen_threshold": 0.49999999999999994,
+    "default_0_50": {
+      "balanced_accuracy": 0.6202380952380953,
+      "f1": 0.5352112676056338,
+      "macro_f1": 0.6042392971691535,
+      "precision": 0.4634146341463415,
+      "recall": 0.6333333333333333,
+      "threshold": 0.49999999999999994
+    },
+    "max_balanced_accuracy": {
+      "balanced_accuracy": 0.6202380952380953,
+      "f1": 0.5352112676056338,
+      "macro_f1": 0.6042392971691535,
+      "precision": 0.4634146341463415,
+      "recall": 0.6333333333333333,
+      "threshold": 0.49999999999999994
+    },
+    "max_macro_f1": {
+      "balanced_accuracy": 0.6202380952380953,
+      "f1": 0.5352112676056338,
+      "macro_f1": 0.6042392971691535,
+      "precision": 0.4634146341463415,
+      "recall": 0.6333333333333333,
+      "threshold": 0.49999999999999994
+    },
+    "recall_priority": {
+      "balanced_accuracy": 0.5928571428571429,
+      "f1": 0.5567010309278351,
+      "macro_f1": 0.4916838487972509,
+      "note": "max recall with validation/CV precision >= 0.40",
+      "precision": 0.40298507462686567,
+      "recall": 0.9,
+      "threshold": 0.32999999999999996
+    },
+    "safety_note": "This is a research classification threshold, not a clinical safety escalation threshold.",
+    "selection_source": "development stratified 5-fold out-of-fold probabilities only"
+  }
+}

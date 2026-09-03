@@ -1,0 +1,11 @@
+{
+  "feature_names": [
+    "mean_intensity",
+    "std_intensity",
+    "contrast",
+    "edge_density",
+    "entropy"
+  ],
+  "feature_set": "image_statistics",
+  "source": "generated/preprocessing/face/v1/face_feature_schema.json"
+}

@@ -1,0 +1,7 @@
+{
+  "thresholds": {
+    "high_severe": 0.7,
+    "low_moderate": 0.32,
+    "moderate_high": 0.52
+  }
+}

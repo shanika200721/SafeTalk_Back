@@ -1,0 +1,25 @@
+{
+  "calibration_policy": "No SVM probability calibration in Phase 3D; Logistic Regression probabilities are native estimator outputs.",
+  "config_hash": "e8d74030dfffbfba32ea4fbfecc31ea437ec204acf922f23e92b9a58f2f443aa",
+  "created_at": "2026-07-15T12:05:00.150810+00:00",
+  "environment": {
+    "libraries": {
+      "numpy": "1.26.4",
+      "pandas": "2.2.2",
+      "scikit-learn": "1.5.2",
+      "scipy": "1.14.1"
+    },
+    "platform": {
+      "machine": "AMD64",
+      "release": "11",
+      "system": "Windows"
+    },
+    "python": {
+      "implementation": "CPython",
+      "python": "3.12.2"
+    }
+  },
+  "preprocessing_artifact_hash": "8d00020f238aa1a0166f3153b4a8687a7db3799030e86adbaa49b7db76a00ef1",
+  "source_fingerprint": "d41cdc3ec3b8dde8f5553accaccd1a01a59c1440d83d7af6856fab77605c9471",
+  "split_manifest_hash": "3ca7657528787f230aa317ebb226511637a82f9b6a099b8daa8d0919c7170c8a"
+}

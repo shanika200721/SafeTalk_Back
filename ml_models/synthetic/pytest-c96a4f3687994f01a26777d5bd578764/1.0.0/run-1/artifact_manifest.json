@@ -1,0 +1,25 @@
+{
+  "config_hash": "9913aa8b452f46827e1e8171a0bb01a69785d44f49e8b3c1b1a9266c68e50c36",
+  "created_at": "2026-07-15T10:01:09.559182+00:00",
+  "dataset_version": "1.0.0",
+  "feature_schema_version": "1.0.0",
+  "file_hashes": {
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/metrics.json": "3c2e177b50b663889ac02f531b94c920376d6340fb4698ae183a6dc40f37bf0e",
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/model.joblib": "bdc24ca21361aa968fdbbbed35bb46a8adf0b0b4e1bb14c55e1c46c3c086e24d",
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/model_card.md": "0f719e9d11e0f0f5b0de2ca32ee36e089a2be312ced9301d32ccce70b16c7f15",
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/training_config.json": "e9cbba1de2727d253fe6998320964e20a92500037c863c2aabf014e86f7f0a2c"
+  },
+  "files": [
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/model.joblib",
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/metrics.json",
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/model_card.md",
+    "ml_models/synthetic/pytest-c96a4f3687994f01a26777d5bd578764/1.0.0/run-1/training_config.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "synthetic",
+  "model_name": "pytest-model",
+  "model_version": "1.0.0",
+  "preprocessing_version": "1.0.0",
+  "run_id": "run-1",
+  "split_manifest_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+}

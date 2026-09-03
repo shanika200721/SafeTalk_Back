@@ -1,0 +1,56 @@
+{
+  "experiment_name": "text-classification-baseline",
+  "experiment_version": "1.0.0",
+  "feature_set": "normalized_text_tfidf",
+  "hyperparameter_search": {
+    "linear_svm": {
+      "C": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "class_weight": [
+        null,
+        "balanced"
+      ],
+      "max_iter": 3000,
+      "random_state": 42
+    },
+    "logistic_regression": {
+      "C": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "class_weight": [
+        null,
+        "balanced"
+      ],
+      "max_iter": 300,
+      "random_state": 42,
+      "solver": "liblinear"
+    }
+  },
+  "max_candidate_count": 24,
+  "min_validation_suicidal_recall": 0.7,
+  "model_name": "text-classification-baseline",
+  "model_version": "1.0.0",
+  "primary_metric": "validation_suicidal_recall_then_macro_f1",
+  "primary_metric_rationale": "Prioritize suicidal-class recall, then macro F1 and balanced performance.",
+  "random_seed": 42,
+  "task": "multiclass_classification",
+  "vectorizers": [
+    {
+      "kind": "word",
+      "max_df": 0.95,
+      "max_features": 20000,
+      "min_df": 2,
+      "name": "word_tfidf",
+      "ngram_range": [
+        1,
+        2
+      ],
+      "sublinear_tf": true
+    }
+  ]
+}

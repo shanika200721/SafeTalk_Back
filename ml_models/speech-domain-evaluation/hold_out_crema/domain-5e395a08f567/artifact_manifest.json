@@ -1,0 +1,57 @@
+{
+  "active": false,
+  "created_at": "2026-07-15T14:29:25.068938+00:00",
+  "file_count": 5,
+  "file_hashes": {
+    "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/evaluation_config.json": "717d2b09ae7bb8cda9de52219f3932998deff3a86fcce6ebd680b94b712360e0",
+    "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/metrics.json": "90600638e7eca9ca4b9f60b0c1c963bf1c1a1fe790e9fbf4cf0b86a68c91769b",
+    "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/model.joblib": "b35bc46d29a7caea557a2b021094c0bab1ab12229be0217a3f77dc7c4d09e367",
+    "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/pipeline.joblib": "3b7cfbf540ad78ce7c8c043bb0141a177aa152255e681dfdaa3be64bd4f91cfc",
+    "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/preprocessor.joblib": "a5bd60c8d1253196df64500f1ee4cd4a866e14727a1b14ecf972a49030f39952"
+  },
+  "files": [
+    {
+      "activation_status": "inactive",
+      "generated_status": "generated",
+      "path": "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/pipeline.joblib",
+      "registration_status": "not_registered",
+      "sha256": "3b7cfbf540ad78ce7c8c043bb0141a177aa152255e681dfdaa3be64bd4f91cfc",
+      "size_bytes": 4048232
+    },
+    {
+      "activation_status": "inactive",
+      "generated_status": "generated",
+      "path": "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/model.joblib",
+      "registration_status": "not_registered",
+      "sha256": "b35bc46d29a7caea557a2b021094c0bab1ab12229be0217a3f77dc7c4d09e367",
+      "size_bytes": 4043641
+    },
+    {
+      "activation_status": "inactive",
+      "generated_status": "generated",
+      "path": "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/preprocessor.joblib",
+      "registration_status": "not_registered",
+      "sha256": "a5bd60c8d1253196df64500f1ee4cd4a866e14727a1b14ecf972a49030f39952",
+      "size_bytes": 4749
+    },
+    {
+      "activation_status": "inactive",
+      "generated_status": "generated",
+      "path": "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/evaluation_config.json",
+      "registration_status": "not_registered",
+      "sha256": "717d2b09ae7bb8cda9de52219f3932998deff3a86fcce6ebd680b94b712360e0",
+      "size_bytes": 1062
+    },
+    {
+      "activation_status": "inactive",
+      "generated_status": "generated",
+      "path": "ml_models/speech-domain-evaluation/hold_out_crema/domain-5e395a08f567/metrics.json",
+      "registration_status": "not_registered",
+      "sha256": "90600638e7eca9ca4b9f60b0c1c963bf1c1a1fe790e9fbf4cf0b86a68c91769b",
+      "size_bytes": 5269
+    }
+  ],
+  "fold_name": "hold_out_crema",
+  "registered": false,
+  "run_id": "domain-5e395a08f567"
+}

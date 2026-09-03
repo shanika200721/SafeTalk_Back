@@ -1,0 +1,269 @@
+{
+  "test": {
+    "accuracy": 0.7950786607503025,
+    "balanced_accuracy": 0.7846379152281703,
+    "confusion_matrix": [
+      [
+        677,
+        61,
+        60,
+        26
+      ],
+      [
+        115,
+        1401,
+        148,
+        510
+      ],
+      [
+        35,
+        50,
+        2621,
+        52
+      ],
+      [
+        23,
+        330,
+        114,
+        1214
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "anxiety",
+      "depression",
+      "normal",
+      "suicidal"
+    ],
+    "log_loss": null,
+    "macro_f1": 0.780784568160688,
+    "macro_precision": 0.7803351591118048,
+    "macro_recall": 0.7846379152281703,
+    "per_class_metrics": {
+      "anxiety": {
+        "f1": 0.8088410991636799,
+        "precision": 0.7964705882352942,
+        "recall": 0.8216019417475728,
+        "support": 824
+      },
+      "depression": {
+        "f1": 0.6977091633466136,
+        "precision": 0.760586319218241,
+        "recall": 0.6444342226310947,
+        "support": 2174
+      },
+      "normal": {
+        "f1": 0.9194878091562884,
+        "precision": 0.890587835541964,
+        "recall": 0.9503263234227701,
+        "support": 2758
+      },
+      "suicidal": {
+        "f1": 0.69710020097617,
+        "precision": 0.6736958934517203,
+        "recall": 0.7221891731112433,
+        "support": 1681
+      }
+    },
+    "roc_auc_macro_ovr": null,
+    "score_kind": "margin",
+    "split": "test",
+    "suicidal_class": {
+      "depression_predicted_as_suicidal": 510,
+      "f1": 0.69710020097617,
+      "false_negatives": 467,
+      "false_positives": 588,
+      "precision": 0.6736958934517203,
+      "recall": 0.7221891731112433,
+      "suicidal_predicted_as_depression": 330,
+      "suicidal_predicted_as_normal": 114
+    },
+    "support": {
+      "anxiety": 824,
+      "depression": 2174,
+      "normal": 2758,
+      "suicidal": 1681
+    },
+    "warnings": [],
+    "weighted_f1": 0.7921309133145616,
+    "weighted_precision": 0.793133046927984,
+    "weighted_recall": 0.7950786607503025
+  },
+  "train": {
+    "accuracy": 0.9423714162224464,
+    "balanced_accuracy": 0.9464683746015397,
+    "confusion_matrix": [
+      [
+        3807,
+        8,
+        27,
+        2
+      ],
+      [
+        115,
+        8904,
+        197,
+        928
+      ],
+      [
+        56,
+        73,
+        12674,
+        70
+      ],
+      [
+        15,
+        359,
+        150,
+        7320
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "anxiety",
+      "depression",
+      "normal",
+      "suicidal"
+    ],
+    "log_loss": null,
+    "macro_f1": 0.9422372789457794,
+    "macro_precision": 0.939368434216689,
+    "macro_recall": 0.9464683746015397,
+    "per_class_metrics": {
+      "anxiety": {
+        "f1": 0.971545234145719,
+        "precision": 0.9534184823441022,
+        "recall": 0.9903746097814776,
+        "support": 3844
+      },
+      "depression": {
+        "f1": 0.9137931034482759,
+        "precision": 0.9529109589041096,
+        "recall": 0.8777602523659306,
+        "support": 10144
+      },
+      "normal": {
+        "f1": 0.9778943713591297,
+        "precision": 0.9713366033108523,
+        "recall": 0.9845412879670629,
+        "support": 12873
+      },
+      "suicidal": {
+        "f1": 0.9057164068299925,
+        "precision": 0.8798076923076923,
+        "recall": 0.9331973482916879,
+        "support": 7844
+      }
+    },
+    "roc_auc_macro_ovr": null,
+    "score_kind": "margin",
+    "split": "train",
+    "suicidal_class": {
+      "depression_predicted_as_suicidal": 928,
+      "f1": 0.9057164068299925,
+      "false_negatives": 524,
+      "false_positives": 1000,
+      "precision": 0.8798076923076923,
+      "recall": 0.9331973482916879,
+      "suicidal_predicted_as_depression": 359,
+      "suicidal_predicted_as_normal": 150
+    },
+    "support": {
+      "anxiety": 3844,
+      "depression": 10144,
+      "normal": 12873,
+      "suicidal": 7844
+    },
+    "warnings": [],
+    "weighted_f1": 0.9421412147850741,
+    "weighted_precision": 0.9432789813034479,
+    "weighted_recall": 0.9423714162224464
+  },
+  "validation": {
+    "accuracy": 0.8121554390211106,
+    "balanced_accuracy": 0.7989930617278725,
+    "confusion_matrix": [
+      [
+        679,
+        85,
+        48,
+        12
+      ],
+      [
+        98,
+        1522,
+        119,
+        434
+      ],
+      [
+        29,
+        49,
+        2634,
+        47
+      ],
+      [
+        10,
+        330,
+        136,
+        1205
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "anxiety",
+      "depression",
+      "normal",
+      "suicidal"
+    ],
+    "log_loss": null,
+    "macro_f1": 0.7995109513250069,
+    "macro_precision": 0.8012410800619822,
+    "macro_recall": 0.7989930617278725,
+    "per_class_metrics": {
+      "anxiety": {
+        "f1": 0.8280487804878048,
+        "precision": 0.8321078431372549,
+        "recall": 0.8240291262135923,
+        "support": 824
+      },
+      "depression": {
+        "f1": 0.7319067083433518,
+        "precision": 0.7663645518630413,
+        "recall": 0.7004141739530603,
+        "support": 2173
+      },
+      "normal": {
+        "f1": 0.9248595505617978,
+        "precision": 0.8968335035750766,
+        "recall": 0.9546937296121784,
+        "support": 2759
+      },
+      "suicidal": {
+        "f1": 0.7132287659070731,
+        "precision": 0.709658421672556,
+        "recall": 0.7168352171326592,
+        "support": 1681
+      }
+    },
+    "roc_auc_macro_ovr": null,
+    "score_kind": "margin",
+    "split": "validation",
+    "suicidal_class": {
+      "depression_predicted_as_suicidal": 434,
+      "f1": 0.7132287659070731,
+      "false_negatives": 476,
+      "false_positives": 493,
+      "precision": 0.709658421672556,
+      "recall": 0.7168352171326592,
+      "suicidal_predicted_as_depression": 330,
+      "suicidal_predicted_as_normal": 136
+    },
+    "support": {
+      "anxiety": 824,
+      "depression": 2173,
+      "normal": 2759,
+      "suicidal": 1681
+    },
+    "warnings": [],
+    "weighted_f1": 0.8099193932824855,
+    "weighted_precision": 0.8092330882262593,
+    "weighted_recall": 0.8121554390211106
+  }
+}

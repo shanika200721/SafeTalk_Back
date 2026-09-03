@@ -1,0 +1,34 @@
+{
+  "config_hash": "99cdbe8dbb57b716f9bbdb7ff3a8d9ad0e88ebdd6281946f7f0ea48897bba84a",
+  "corpus_fingerprints": {
+    "CREMA": "7f4c5e6eb67533534a4c286329e706c08f24f6e148d4df8e709647ec3b1720b5",
+    "RAVDESS": "36f177cd8eaffd44d07438437f753ec39308ccb26d598af3308252d919506f83",
+    "SAVEE": "bfc379ed6ffe131b5ee654898e060870e400c13698f0b8f7d18eb3f5224cc7a8",
+    "TESS": "6062a243ad986ef8ddc9144c787a48266c7ccce03549fe2d585aeb99e6b34871"
+  },
+  "created_at": "2026-07-15T13:38:51.950780+00:00",
+  "environment": {
+    "libraries": {
+      "numpy": "1.26.4",
+      "pandas": "2.2.2",
+      "scikit-learn": "1.5.2",
+      "scipy": "1.14.1"
+    },
+    "platform": {
+      "machine": "AMD64",
+      "release": "11",
+      "system": "Windows"
+    },
+    "python": {
+      "implementation": "CPython",
+      "python": "3.12.2"
+    }
+  },
+  "feature_extraction_result": null,
+  "feature_file_hash": "41f585e4b0e552039d45c776247cc96065216996e4745964cecbc09815546a53",
+  "no_deep_learning": true,
+  "no_transcription": true,
+  "preprocessing_artifact_hash": "bc1d4e2cc6f09ba58b0704bd611fdff58b27f2acd0b80722eb4d53296e4e9eaa",
+  "source_fingerprint": "969b0db4f647d9af9896d1c846548a7e06a8ed5ba2d8509fe4c3d1b838e4e3c8",
+  "split_manifest_hash": "a28b530e0b2f7c87bbd7a502d5ce07036fa6d9d5fd8c466e798d32a2b4a314c6"
+}

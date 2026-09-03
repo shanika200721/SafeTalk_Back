@@ -1,0 +1,39 @@
+{
+  "active": false,
+  "config_hash": "21d60c23048f08f2aefb9dac6f1619776678a68170aecb522f3353ea4c45f604",
+  "created_at": "2026-07-15T11:56:47.705632+00:00",
+  "file_hashes": {
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/candidate_comparison.csv": "c3c085ce24147db4805713610e07d7b62a2e7ae9ff2738d3701508396a4cc8d1",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/feature_schema.json": "92410961ea8a279a5833c82a64a2916f71a17b8f7d4a39b53ad5025c1ce721ab",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/metrics.json": "c3404822ea6bb2c8f8ded7bca3738eb230c4dcb0f89a54ed518624bf03acb86a",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/model.joblib": "cafbbc892c9260fdf99c11de56fb5fe9844bdeaecac0d58739ea3e12e936acbc",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/model_card.md": "bbb4f9ff92987051b6b6adeea0fa0ed31f2c86f170d134095cd5de78c0fe1449",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/pipeline.joblib": "f71103cc821e1cd72cf569cecff1fef06f8037d2d85e053585d5f743ecf0201d",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/reproducibility_report.json": "e2b01b521b010b9fbc193dbb4a5f1129f9c8d489e8b1449990b86bc3a99ac6ae",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/split_manifest_reference.json": "3ca7657528787f230aa317ebb226511637a82f9b6a099b8daa8d0919c7170c8a",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/training_config.json": "a5ab2d390beec33d1e07e7f2244c676e631abe2b821fcfde2794f9d025ad3bf2",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/vectorizer.joblib": "59e89502e011add6b004656ec7d7f5e1f93c875688c6c467cdbc1ce5ceeeabb9",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/vocabulary_metadata.json": "4a7cf4e9ab094689265aada54f5d42fd1c5ab0201328b80e557e3cf445088b95"
+  },
+  "files": [
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/model.joblib",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/vectorizer.joblib",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/pipeline.joblib",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/training_config.json",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/metrics.json",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/candidate_comparison.csv",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/feature_schema.json",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/split_manifest_reference.json",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/vocabulary_metadata.json",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/model_card.md",
+    "ml_models/text/text-classification-linear-svm/1.0.0/text-21d60c23048f/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "text",
+  "model_name": "text-classification-linear-svm",
+  "model_version": "1.0.0",
+  "preprocessing_artifact_hash": "8d00020f238aa1a0166f3153b4a8687a7db3799030e86adbaa49b7db76a00ef1",
+  "run_id": "text-21d60c23048f",
+  "source_fingerprint": "d41cdc3ec3b8dde8f5553accaccd1a01a59c1440d83d7af6856fab77605c9471",
+  "split_manifest_hash": "3ca7657528787f230aa317ebb226511637a82f9b6a099b8daa8d0919c7170c8a"
+}

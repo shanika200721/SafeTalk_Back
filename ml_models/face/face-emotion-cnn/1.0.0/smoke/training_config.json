@@ -1,0 +1,9 @@
+{
+  "batch_size": 64,
+  "epochs": 1,
+  "max_train_records": 140,
+  "model_dir": "ml_models/face/face-emotion-cnn/1.0.0/smoke",
+  "output_dir": "generated/reports/face_cnn/smoke",
+  "patience": 1,
+  "seed": 43107
+}

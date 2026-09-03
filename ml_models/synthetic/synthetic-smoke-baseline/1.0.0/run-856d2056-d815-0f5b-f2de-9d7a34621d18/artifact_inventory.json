@@ -1,0 +1,47 @@
+[
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/artifact_manifest.json",
+    "sha256": "fa2ae4cfbf2dabc37f89596bc58ad5758813dd3d31d8e596e8d8b38f11e2430b",
+    "size_bytes": 2097
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/metrics.json",
+    "sha256": "1c4b1c04146c221bb4714c2e0207b8c55afd60031f2500fe9aec7628328ab172",
+    "size_bytes": 2718
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/model.joblib",
+    "sha256": "a0d396287f9e08b7795c02213d6497c4c6f919010978530bf5fd2e78ab406734",
+    "size_bytes": 1423
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/model_card.json",
+    "sha256": "bc00cec951e4647f2b4ea5b556fdd425516b683981b36d167287fd300d67705d",
+    "size_bytes": 4990
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/model_card.md",
+    "sha256": "77d46bd8d9e7467eda34a81ca76447b5fda20e2936f6769e5ce35b69748d4d7e",
+    "size_bytes": 4417
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/reproducibility_report.json",
+    "sha256": "1a95138ef60380365316b422e5476aae03f3a8fd9ba1ba5c9e5a029be6adcd8a",
+    "size_bytes": 533
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/training_config.json",
+    "sha256": "44d69c424a577e92dbce6acd1470fc3167d1a31d77ffb22b89acd3315061a341",
+    "size_bytes": 1148
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/training_summary.json",
+    "sha256": "d03ca1983c1b47cf2d56b11419b28df8e371d78895bad7e76b19f117830af3ff",
+    "size_bytes": 5090
+  },
+  {
+    "path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-856d2056-d815-0f5b-f2de-9d7a34621d18/training_summary.md",
+    "sha256": "498781e687601d5b95300f73e51e54ad179c4f30e26f1e005f4f1ca3226da3cb",
+    "size_bytes": 3313
+  }
+]
