@@ -1,0 +1,24 @@
+{
+  "config_hash": "66e36ed73f4022497fcd0b4c899b4f6750b3fa5ef9bbecb9c3b0fb11a1957d0b",
+  "created_at": "2026-07-15T10:57:59.453604+00:00",
+  "environment": {
+    "libraries": {
+      "numpy": "1.26.4",
+      "pandas": "2.2.2",
+      "scikit-learn": "1.5.2",
+      "scipy": "1.14.1"
+    },
+    "platform": {
+      "machine": "AMD64",
+      "release": "11",
+      "system": "Windows"
+    },
+    "python": {
+      "implementation": "CPython",
+      "python": "3.12.2"
+    }
+  },
+  "preprocessing_artifact_hash": "eb3cc7476160afc49ed608c988c0bb9a7e723237aa4c6f67a6a85dd37c8e0ff8",
+  "source_fingerprint": "c0d1300dd5225b426f91ee75c81e5068efdadf528416628994a5a6e013063f0a",
+  "split_manifest_hash": "8b829b1174fc2aa23c7e1742e939d10a7016cb57703ab387b45d19266a6d3dda"
+}

@@ -1,0 +1,39 @@
+{
+  "artifact_subdirectory": "synthetic/smoke",
+  "dataset_name": "training-framework-smoke",
+  "dataset_version": "1.0.0",
+  "estimator_type": "logistic_regression",
+  "excluded_columns": [
+    "record_id"
+  ],
+  "experiment_name": "training-framework-smoke",
+  "experiment_version": "1.0.0",
+  "feature_columns": [
+    "feature_0",
+    "feature_1",
+    "feature_2",
+    "feature_3"
+  ],
+  "feature_schema_version": "1.0.0",
+  "framework": "scikit-learn",
+  "hyperparameters": {
+    "max_iter": 200,
+    "random_state": 42
+  },
+  "modality": "synthetic",
+  "model_name": "synthetic-smoke-baseline",
+  "model_version": "1.0.0",
+  "notes": "Synthetic framework smoke fixture only.",
+  "preprocessing_version": "1.0.0",
+  "primary_metric": "f1_weighted",
+  "random_seed": 42,
+  "secondary_metrics": [
+    "balanced_accuracy",
+    "recall_weighted"
+  ],
+  "sensitive_columns": [],
+  "split_manifest_path": "generated/temporary/pytest-phase3b-e6141218ff454b6bb96c41eaeb3ae992/synthetic_binary_split_manifest.json",
+  "target_column": "label",
+  "task": "binary_classification",
+  "threshold_strategy": "max_f1"
+}

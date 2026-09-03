@@ -1,0 +1,35 @@
+{
+  "class_order": [
+    "Low",
+    "Moderate",
+    "High",
+    "Severe"
+  ],
+  "feature_columns": [
+    "profile_score",
+    "dass_score",
+    "mood_score",
+    "text_score",
+    "speech_score",
+    "face_score",
+    "profile_available",
+    "dass_available",
+    "mood_available",
+    "text_available",
+    "speech_available",
+    "face_available"
+  ],
+  "missing_modality_strategy": "median imputation plus availability indicators for learned model; weight renormalization for fixed rule",
+  "modality_order": [
+    "profile_score",
+    "dass_score",
+    "mood_score",
+    "text_score",
+    "speech_score",
+    "face_score"
+  ],
+  "score_range": [
+    0,
+    1
+  ]
+}

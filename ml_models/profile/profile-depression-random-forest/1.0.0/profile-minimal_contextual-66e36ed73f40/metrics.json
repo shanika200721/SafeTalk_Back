@@ -1,0 +1,279 @@
+{
+  "test": {
+    "accuracy": 0.3333333333333333,
+    "balanced_accuracy": 0.5,
+    "brier_score": 0.23085429255554635,
+    "calibration_summary": {
+      "bins": [
+        {
+          "bin": "0.00-0.20",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        },
+        {
+          "bin": "0.20-0.40",
+          "count": 8,
+          "mean_probability": 0.3350752136657455,
+          "observed_positive_rate": 0.375
+        },
+        {
+          "bin": "0.40-0.60",
+          "count": 7,
+          "mean_probability": 0.4174902893899813,
+          "observed_positive_rate": 0.2857142857142857
+        },
+        {
+          "bin": "0.60-0.80",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        },
+        {
+          "bin": "0.80-1.00",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        }
+      ],
+      "warning": "Calibration is descriptive only; split has too few records for stable calibration."
+    },
+    "class_balance": {
+      "no": 10,
+      "yes": 5
+    },
+    "confidence_intervals": {
+      "available": false,
+      "reason": "Bootstrap confidence intervals are unstable for the 15-record validation/test splits."
+    },
+    "confusion_matrix": {
+      "fn": 0,
+      "fp": 10,
+      "labels": [
+        "no",
+        "yes"
+      ],
+      "tn": 0,
+      "tp": 5
+    },
+    "f1": 0.5,
+    "false_negatives": 0,
+    "false_positives": 10,
+    "feature_count": 4,
+    "log_loss": 0.6547101349896184,
+    "pr_auc": 0.3142857142857143,
+    "precision": 0.3333333333333333,
+    "predicted_probability_distribution": {
+      "bins": {
+        "[0.00,0.25)": 0,
+        "[0.25,0.50)": 15,
+        "[0.50,0.75)": 0,
+        "[0.75,1.00]": 0
+      },
+      "max": 0.4326723276629677,
+      "mean": 0.37353558233705547,
+      "median": 0.3350752136657455,
+      "min": 0.3350752136657455
+    },
+    "recall": 1.0,
+    "roc_auc": 0.41,
+    "specificity": 0.0,
+    "split": "test",
+    "support": {
+      "no": 10,
+      "total": 15,
+      "yes": 5
+    },
+    "threshold": 0.3350752136657455,
+    "warnings": [
+      "Metrics are unstable because this split contains 15 or fewer records."
+    ]
+  },
+  "train": {
+    "accuracy": 0.39436619718309857,
+    "balanced_accuracy": 0.5234782608695652,
+    "brier_score": 0.22369523440213065,
+    "calibration_summary": {
+      "bins": [
+        {
+          "bin": "0.00-0.20",
+          "count": 5,
+          "mean_probability": 0.19241269841269837,
+          "observed_positive_rate": 0.2
+        },
+        {
+          "bin": "0.20-0.40",
+          "count": 30,
+          "mean_probability": 0.3350752136657456,
+          "observed_positive_rate": 0.3
+        },
+        {
+          "bin": "0.40-0.60",
+          "count": 36,
+          "mean_probability": 0.42381613867039225,
+          "observed_positive_rate": 0.4166666666666667
+        },
+        {
+          "bin": "0.60-0.80",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        },
+        {
+          "bin": "0.80-1.00",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        }
+      ],
+      "warning": "Calibration is descriptive only; split has too few records for stable calibration."
+    },
+    "class_balance": {
+      "no": 46,
+      "yes": 25
+    },
+    "confidence_intervals": {
+      "available": false,
+      "reason": "Bootstrap confidence intervals are unstable for the 15-record validation/test splits."
+    },
+    "confusion_matrix": {
+      "fn": 1,
+      "fp": 42,
+      "labels": [
+        "no",
+        "yes"
+      ],
+      "tn": 4,
+      "tp": 24
+    },
+    "f1": 0.5274725274725275,
+    "false_negatives": 1,
+    "false_positives": 42,
+    "feature_count": 4,
+    "log_loss": 0.6387923108447648,
+    "pr_auc": 0.3992793122370587,
+    "precision": 0.36363636363636365,
+    "predicted_probability_distribution": {
+      "bins": {
+        "[0.00,0.25)": 5,
+        "[0.25,0.50)": 66,
+        "[0.50,0.75)": 0,
+        "[0.75,1.00]": 0
+      },
+      "max": 0.4326723276629677,
+      "mean": 0.37002395625591517,
+      "median": 0.4114174740807867,
+      "min": 0.19241269841269837
+    },
+    "preprocessing": {
+      "all_null_features": [],
+      "categorical_features": [
+        "year_of_study"
+      ],
+      "constant_features": [],
+      "feature_count_after_encoding": 4,
+      "numeric_features": []
+    },
+    "recall": 0.96,
+    "roc_auc": 0.5821739130434783,
+    "specificity": 0.08695652173913043,
+    "split": "train",
+    "support": {
+      "no": 46,
+      "total": 71,
+      "yes": 25
+    },
+    "threshold": 0.3350752136657455,
+    "warnings": []
+  },
+  "validation": {
+    "accuracy": 0.5333333333333333,
+    "balanced_accuracy": 0.65,
+    "brier_score": 0.2039868605717973,
+    "calibration_summary": {
+      "bins": [
+        {
+          "bin": "0.00-0.20",
+          "count": 3,
+          "mean_probability": 0.19241269841269837,
+          "observed_positive_rate": 0.0
+        },
+        {
+          "bin": "0.20-0.40",
+          "count": 5,
+          "mean_probability": 0.3350752136657455,
+          "observed_positive_rate": 0.4
+        },
+        {
+          "bin": "0.40-0.60",
+          "count": 7,
+          "mean_probability": 0.42052669704457857,
+          "observed_positive_rate": 0.42857142857142855
+        },
+        {
+          "bin": "0.60-0.80",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        },
+        {
+          "bin": "0.80-1.00",
+          "count": 0,
+          "mean_probability": null,
+          "observed_positive_rate": null
+        }
+      ],
+      "warning": "Calibration is descriptive only; split has too few records for stable calibration."
+    },
+    "class_balance": {
+      "no": 10,
+      "yes": 5
+    },
+    "confidence_intervals": {
+      "available": false,
+      "reason": "Bootstrap confidence intervals are unstable for the 15-record validation/test splits."
+    },
+    "confusion_matrix": {
+      "fn": 0,
+      "fp": 7,
+      "labels": [
+        "no",
+        "yes"
+      ],
+      "tn": 3,
+      "tp": 5
+    },
+    "f1": 0.5882352941176471,
+    "false_negatives": 0,
+    "false_positives": 7,
+    "feature_count": 4,
+    "log_loss": 0.5906625252805391,
+    "pr_auc": 0.40476190476190477,
+    "precision": 0.4166666666666667,
+    "predicted_probability_distribution": {
+      "bins": {
+        "[0.00,0.25)": 3,
+        "[0.25,0.50)": 12,
+        "[0.50,0.75)": 0,
+        "[0.75,1.00]": 0
+      },
+      "max": 0.4326723276629677,
+      "mean": 0.3464200695252581,
+      "median": 0.3350752136657455,
+      "min": 0.19241269841269837
+    },
+    "recall": 1.0,
+    "roc_auc": 0.64,
+    "specificity": 0.3,
+    "split": "validation",
+    "support": {
+      "no": 10,
+      "total": 15,
+      "yes": 5
+    },
+    "threshold": 0.3350752136657455,
+    "warnings": [
+      "Metrics are unstable because this split contains 15 or fewer records."
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "selected_features": [
+    "year_of_study",
+    "self_reported_anxiety",
+    "self_reported_panic_attack"
+  ],
+  "source": "generated/preprocessing/profile/v1/profile_feature_schema.json",
+  "transformed_feature_names": [
+    "year_of_study_year 1",
+    "year_of_study_year 2",
+    "year_of_study_year 3",
+    "year_of_study_year 4",
+    "self_reported_anxiety_no",
+    "self_reported_anxiety_yes",
+    "self_reported_panic_attack_no",
+    "self_reported_panic_attack_yes"
+  ]
+}

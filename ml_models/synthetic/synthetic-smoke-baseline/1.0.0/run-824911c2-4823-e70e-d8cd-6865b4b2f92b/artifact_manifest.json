@@ -1,0 +1,27 @@
+{
+  "config_hash": "6c3601dbc2c180ad2c57816f20493448662a7b3bd977cbc615914fd85312c4c0",
+  "created_at": "2026-07-15T10:07:22.324679+00:00",
+  "dataset_version": "1.0.0",
+  "feature_schema_version": "1.0.0",
+  "file_hashes": {
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/metrics.json": "1c4b1c04146c221bb4714c2e0207b8c55afd60031f2500fe9aec7628328ab172",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/model.joblib": "a0d396287f9e08b7795c02213d6497c4c6f919010978530bf5fd2e78ab406734",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/model_card.md": "66f3653e51f5ee6799bc0feb759291dc6892ef6c2ff2c504a713c764c3f95c69",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/reproducibility_report.json": "12a7af3fe73ea9f9bf8f2d64611b3c86179b56bf040c933c8dcb2040313cfdbf",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/training_config.json": "e9e99df766b7f867ebe948a866a4d32d45331524c0efdc56609d6f00f06e8411"
+  },
+  "files": [
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/model.joblib",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/metrics.json",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/model_card.md",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/training_config.json",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-824911c2-4823-e70e-d8cd-6865b4b2f92b/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "synthetic",
+  "model_name": "synthetic-smoke-baseline",
+  "model_version": "1.0.0",
+  "preprocessing_version": "1.0.0",
+  "run_id": "run-824911c2-4823-e70e-d8cd-6865b4b2f92b",
+  "split_manifest_hash": "b327b459e66b7ca87849b4ad49410cb5ee478060313f09eb9e74bb5a1e4bb167"
+}

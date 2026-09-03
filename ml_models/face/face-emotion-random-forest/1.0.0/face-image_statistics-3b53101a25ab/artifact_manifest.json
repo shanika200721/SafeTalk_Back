@@ -1,0 +1,37 @@
+{
+  "active": false,
+  "config_hash": "3b53101a25ab272b4f9625ef6e3dbe2b03ab56fee681425a52d92d130a001501",
+  "created_at": "2026-07-15T18:08:24.693938+00:00",
+  "file_hashes": {
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/candidate_comparison.csv": "21159b7eca108dca22d2859e401e3514b0b0f2480c4c3df7898f761f8442c3b5",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/feature_schema.json": "bb83e096eb3e7201822423aacbe1d585d88158e9a534af8a34a22d6a184a0cd2",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/metrics.json": "59ea10208b26ebb0e0d0edcdb272d3bb2741e9e8e33cc534bfdc07582bb8ef97",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/model.joblib": "368515a0b202b683f4a605df4503c03b22b358d54e45558b240cdd0a1fa6a5b7",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/model_card.md": "4bc9e7651075a2438cb439ee10755df1eb3bb3566fd43e43eeefb26d7158de14",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/pipeline.joblib": "41fec458b5c71a2154a1323ecd2e2b64be81627e894f8bc4c4b1511afe00eb25",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/preprocessor.joblib": "9c298d589a2158eb513cb52191144518a2acab2cb0c04f1df14fca0f712fa4a1",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/reproducibility_report.json": "eece3f8804357085bb00b0650f50aacc7298eea1206f38576c14b5d8abd07e74",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/split_manifest_reference.json": "820596a8e77c078ac396414e17451d404cb3200877057baab0ff301d52e3ddf9",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/training_config.json": "34988a73e6fa13e7d2ebce091fdf7157fc9b630afc7ddddd6752acd6c646be40"
+  },
+  "files": [
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/model.joblib",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/preprocessor.joblib",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/pipeline.joblib",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/training_config.json",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/metrics.json",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/candidate_comparison.csv",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/feature_schema.json",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/split_manifest_reference.json",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/model_card.md",
+    "ml_models/face/face-emotion-random-forest/1.0.0/face-image_statistics-3b53101a25ab/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "face",
+  "model_name": "face-emotion-random-forest",
+  "model_version": "1.0.0",
+  "registered": false,
+  "run_id": "face-image_statistics-3b53101a25ab",
+  "source_fingerprint": "6b0b04f816f1581093cf4adedae8c1baa0baf73b69d4eeb3e99e4addc7475016",
+  "split_manifest_hash": "820596a8e77c078ac396414e17451d404cb3200877057baab0ff301d52e3ddf9"
+}
