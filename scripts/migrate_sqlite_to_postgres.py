@@ -36,6 +36,14 @@ DEPENDENCY_ORDER = [
     "worker_jobs",
 ]
 
+TABLE_DEFAULTS = {
+    "chat_messages": {
+        "ai_analysis_requested": False,
+        "ai_analysis_status": "not_requested",
+        "delivery_status": "sent",
+    }
+}
+
 
 def chunked(rows: List[dict], size: int) -> Iterable[List[dict]]:
     for index in range(0, len(rows), size):
@@ -67,6 +75,22 @@ def fetch_rows(engine: Engine, metadata: MetaData, table_name: str) -> List[dict
     with engine.connect() as connection:
         result = connection.execute(select(table))
         return [dict(row._mapping) for row in result]
+
+
+def apply_compatibility_defaults(table_name: str, row: dict) -> dict:
+    defaults = TABLE_DEFAULTS.get(table_name)
+    if not defaults:
+        return row
+
+    output = dict(row)
+    for key, value in defaults.items():
+        if output.get(key) is None:
+            output[key] = value
+
+    if table_name == "chat_messages" and output.get("is_read") is True:
+        output["delivery_status"] = "read"
+
+    return output
 
 
 def reset_postgres_sequence(connection, table_name: str, id_column: str = "id") -> None:
@@ -142,7 +166,11 @@ def migrate(sqlite_url: str, postgres_url: str, dry_run: bool, chunk_size: int) 
             destination_table = postgres_metadata.tables[table_name]
             destination_columns = {column.name for column in destination_table.columns}
             filtered_rows = [
-                {key: value for key, value in row.items() if key in destination_columns}
+                {
+                    key: value
+                    for key, value in apply_compatibility_defaults(table_name, row).items()
+                    if key in destination_columns
+                }
                 for row in source_rows
             ]
 

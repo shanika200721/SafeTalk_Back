@@ -1,8 +1,8 @@
 {
-  "started_at": "2026-07-14T09:32:15.100487",
+  "started_at": "2026-09-03T21:37:54.228584",
   "dry_run": false,
   "sqlite_url": "sqlite:///./suicideprevention.db",
-  "postgres_url": "postgresql+psycopg2://suicide_app:***@localhost:5432/suicide_prevention",
+  "postgres_url": "postgresql+psycopg2://safetalk:89%40nMi10@postgresql-safetalk.alwaysdata.net:5432/safetalk_db",
   "tables": [
     {
       "table": "users",
@@ -116,5 +116,5 @@
   "total_source_rows": 434,
   "total_inserted_rows": 434,
   "status": "complete",
-  "completed_at": "2026-07-14T09:32:15.806641"
+  "completed_at": "2026-09-03T21:38:14.007972"
 }
