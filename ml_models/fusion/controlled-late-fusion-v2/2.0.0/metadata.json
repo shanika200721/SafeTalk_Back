@@ -1,0 +1,21 @@
+{
+  "code_version": "unavailable",
+  "dataset_fingerprint": "4d7d1e1a69b678501bd997c35728e301f67f2a1e1e4dc1da060ab6331a5287a1",
+  "metric_definitions": [
+    "accuracy",
+    "balanced_accuracy",
+    "macro_precision",
+    "macro_recall",
+    "macro_f1",
+    "weighted_f1",
+    "one-vs-rest ROC-AUC",
+    "one-vs-rest PR-AUC"
+  ],
+  "model_name": "RBF SVM",
+  "random_seed": 42,
+  "selection_metric": "validation_macro_f1",
+  "split_manifest_hash": "fe89a2961eb0944bd28cb977ff6dcef9c082c6a9258955bd8222e39ae902394b",
+  "test_set_used_for_selection": false,
+  "training_configuration": "Scikit-learn pipeline using modality-level scores and availability indicators only.",
+  "version": "2.0.0"
+}

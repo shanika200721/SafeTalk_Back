@@ -1,0 +1,45 @@
+{
+  "active": false,
+  "config_hash": "8b042739d5f66471b526b5a3bb3a0597d3fbb49815dcda6289035ed2573be99e",
+  "corpus_fingerprints": {
+    "CREMA": "7f4c5e6eb67533534a4c286329e706c08f24f6e148d4df8e709647ec3b1720b5",
+    "RAVDESS": "36f177cd8eaffd44d07438437f753ec39308ccb26d598af3308252d919506f83",
+    "SAVEE": "bfc379ed6ffe131b5ee654898e060870e400c13698f0b8f7d18eb3f5224cc7a8",
+    "TESS": "6062a243ad986ef8ddc9144c787a48266c7ccce03549fe2d585aeb99e6b34871"
+  },
+  "created_at": "2026-07-15T13:45:36.333788+00:00",
+  "feature_file_hash": "41f585e4b0e552039d45c776247cc96065216996e4745964cecbc09815546a53",
+  "feature_set": "full_acoustic",
+  "file_hashes": {
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/candidate_comparison.csv": "69a7ea2052df97fc3fa67d7081e17c6222e351224eb7684538be37d1cb28e843",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/feature_schema.json": "d539b61119d546c934a878a8d0f3e01490f0d0c429e669bcd2e14ab00a7669d2",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/metrics.json": "6dc57a51be98b0843f5cb3795955d9fe608ecbd67b0190f79fce5d38a3702859",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/model.joblib": "8efe45976e449ee675a795bf16efa7b29c29cef613282b2e7e658223f12e9e54",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/model_card.md": "969735de811d1c1aa0d6791bbcf77db8134b743b7070e5c77c2a3e9baec8d5df",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/pipeline.joblib": "e06673df4135d3821e618c156cb0f3607737f7eeae6c1ab9f67ce2c5edb41e17",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/preprocessor.joblib": "4d1e82ead5d4eb49ee9e1165df45bd4b0860d88ca2182c7c83292620b9c1f819",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/reproducibility_report.json": "d1d078f3456a33203a972b2da6310522a76fd901a7059974e37c37c5aa119187",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/split_manifest_reference.json": "a28b530e0b2f7c87bbd7a502d5ce07036fa6d9d5fd8c466e798d32a2b4a314c6",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/training_config.json": "3a526c2637f930f344cc0bbff8f8f590e76bd683d535cd6f66b5614551d7d5d5"
+  },
+  "files": [
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/model.joblib",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/preprocessor.joblib",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/pipeline.joblib",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/training_config.json",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/metrics.json",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/candidate_comparison.csv",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/feature_schema.json",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/split_manifest_reference.json",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/model_card.md",
+    "ml_models/speech/speech-emotion-random-forest/1.0.0/speech-8b042739d5f6/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "speech",
+  "model_name": "speech-emotion-random-forest",
+  "model_version": "1.0.0",
+  "preprocessing_artifact_hash": "bc1d4e2cc6f09ba58b0704bd611fdff58b27f2acd0b80722eb4d53296e4e9eaa",
+  "run_id": "speech-8b042739d5f6",
+  "source_fingerprint": "969b0db4f647d9af9896d1c846548a7e06a8ed5ba2d8509fe4c3d1b838e4e3c8",
+  "split_manifest_hash": "a28b530e0b2f7c87bbd7a502d5ce07036fa6d9d5fd8c466e798d32a2b4a314c6"
+}

@@ -1,0 +1,18 @@
+{
+  "metrics.json": {
+    "path": "ml_models/speech/speech-emotion-v2/2.0.0/speech-v2-fdec79a72ab8/metrics.json",
+    "sha256": "a907cace3dd0acdabd70bd1e99c8dc741c78fe14c2fe673462a8b632e1ee3a5c"
+  },
+  "reproducibility_report.json": {
+    "path": "ml_models/speech/speech-emotion-v2/2.0.0/speech-v2-fdec79a72ab8/reproducibility_report.json",
+    "sha256": "4a7a8bba7e2868157cfe810c469a46681c9b57ecc788d3fccf69cc9e78e2ad5e"
+  },
+  "speech_v2_pipeline.joblib": {
+    "path": "ml_models/speech/speech-emotion-v2/2.0.0/speech-v2-fdec79a72ab8/speech_v2_pipeline.joblib",
+    "sha256": "3462b96c2f7fa214bafc40a8b58fa7ca4d0c3a7a795c870c8a577c926626f069"
+  },
+  "training_config.json": {
+    "path": "ml_models/speech/speech-emotion-v2/2.0.0/speech-v2-fdec79a72ab8/training_config.json",
+    "sha256": "2bb5039e66256aa38b47c0d3698ad6b60fd85ca6eb3bf4cf17d1188e97e9cdbf"
+  }
+}

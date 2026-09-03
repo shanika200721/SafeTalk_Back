@@ -1,0 +1,113 @@
+{
+  "accuracy": 0.43499458288190684,
+  "balanced_accuracy": 0.5069635666168341,
+  "bootstrap_95ci": {
+    "accuracy": {
+      "high": 0.4582881906825569,
+      "low": 0.4122426868905742
+    },
+    "balanced_accuracy": {
+      "high": 0.5285397575145082,
+      "low": 0.4839252110822231
+    },
+    "macro_f1": {
+      "high": 0.4677061128507549,
+      "low": 0.41900803498554245
+    },
+    "macro_precision": {
+      "high": 0.45355854990878114,
+      "low": 0.40707640896622094
+    },
+    "macro_recall": {
+      "high": 0.5285397575145083,
+      "low": 0.48392521108222314
+    },
+    "weighted_f1": {
+      "high": 0.45070135074474854,
+      "low": 0.40354268563240936
+    }
+  },
+  "macro_f1": 0.4433312480703083,
+  "macro_precision": 0.4296582877150799,
+  "macro_recall": 0.5069635666168341,
+  "per_class": {
+    "angry": {
+      "f1": 0.5432098765432098,
+      "precision": 0.5422535211267606,
+      "recall": 0.5441696113074205,
+      "support": 283
+    },
+    "calm": {
+      "f1": 0.574585635359116,
+      "precision": 0.416,
+      "recall": 0.9285714285714286,
+      "support": 56
+    },
+    "disgust": {
+      "f1": 0.3826429980276134,
+      "precision": 0.4330357142857143,
+      "recall": 0.34275618374558303,
+      "support": 283
+    },
+    "fearful": {
+      "f1": 0.32421052631578945,
+      "precision": 0.4010416666666667,
+      "recall": 0.27208480565371024,
+      "support": 283
+    },
+    "happy": {
+      "f1": 0.36666666666666664,
+      "precision": 0.4467005076142132,
+      "recall": 0.31095406360424027,
+      "support": 283
+    },
+    "neutral": {
+      "f1": 0.45263157894736844,
+      "precision": 0.4358108108108108,
+      "recall": 0.4708029197080292,
+      "support": 274
+    },
+    "sad": {
+      "f1": 0.4527027027027027,
+      "precision": 0.4336569579288026,
+      "recall": 0.4734982332155477,
+      "support": 283
+    },
+    "surprised": {
+      "f1": 0.45,
+      "precision": 0.3287671232876712,
+      "recall": 0.7128712871287128,
+      "support": 101
+    }
+  },
+  "pr_auc_macro_ovr": 0.4457913113559926,
+  "pr_auc_weighted_ovr": 0.42446555849808,
+  "random_seed": 42,
+  "roc_auc_macro_ovr": 0.8308877239225612,
+  "roc_auc_weighted_ovr": 0.8019720606459978,
+  "selected_model": "logistic_C0.3_balanced",
+  "selection_cv": {
+    "candidate": "logistic_C0.3_balanced",
+    "folds": 3,
+    "mean_accuracy": 0.5232994596634111,
+    "mean_balanced_accuracy": 0.5629843043947499,
+    "mean_macro_f1": 0.5209343388740603,
+    "std_macro_f1": 0.0487990165332085
+  },
+  "split_manifest_hash": "d3ef2c5b6c230e22ac7f7fcd1895c525e9df7312950ddc28649b95ef61962f59",
+  "support": {
+    "angry": 283,
+    "calm": 56,
+    "disgust": 283,
+    "fearful": 283,
+    "happy": 283,
+    "neutral": 274,
+    "sad": 283,
+    "surprised": 101,
+    "total": 1846
+  },
+  "test_evaluation_policy": "frozen v1 test split evaluated once after grouped-CV model selection",
+  "weighted_f1": 0.42648825687656144,
+  "weighted_precision": 0.4412548481317917,
+  "weighted_recall": 0.43499458288190684
+}

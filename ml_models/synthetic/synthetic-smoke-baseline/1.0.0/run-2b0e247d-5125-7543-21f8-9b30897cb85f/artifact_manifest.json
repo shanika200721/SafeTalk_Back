@@ -1,0 +1,27 @@
+{
+  "config_hash": "6a2536eda94fdaf3ff69d90dbf8aaf8e8a2c7520f5946db04892f4420ab5c245",
+  "created_at": "2026-08-09T09:38:52.704493+00:00",
+  "dataset_version": "1.0.0",
+  "feature_schema_version": "1.0.0",
+  "file_hashes": {
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/metrics.json": "1c4b1c04146c221bb4714c2e0207b8c55afd60031f2500fe9aec7628328ab172",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/model.joblib": "a0d396287f9e08b7795c02213d6497c4c6f919010978530bf5fd2e78ab406734",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/model_card.md": "00db861ccfce6ded2c635c763f3933f4d77d29800a299a4cdea54136c4912fbc",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/reproducibility_report.json": "3ec0fbd0898b8fe6a8eeaea45eb8e56fc3a3c4b025792784ef0a232aaa2b1706",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/training_config.json": "68ba3f56286790ae783dbdef7963bf78da5efe970eefcbc9b523f48925e16985"
+  },
+  "files": [
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/model.joblib",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/metrics.json",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/model_card.md",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/training_config.json",
+    "ml_models/synthetic/synthetic-smoke-baseline/1.0.0/run-2b0e247d-5125-7543-21f8-9b30897cb85f/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "synthetic",
+  "model_name": "synthetic-smoke-baseline",
+  "model_version": "1.0.0",
+  "preprocessing_version": "1.0.0",
+  "run_id": "run-2b0e247d-5125-7543-21f8-9b30897cb85f",
+  "split_manifest_hash": "82a3131538cfcf669587abd3f251ae4051b7aaa7c0e7921878948494c8636118"
+}

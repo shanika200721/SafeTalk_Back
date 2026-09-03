@@ -1,0 +1,36 @@
+{
+  "artifact_subdirectory": "synthetic/pytest",
+  "dataset_name": "pytest-synthetic",
+  "dataset_version": "1.0.0",
+  "estimator_type": "logistic_regression",
+  "excluded_columns": [
+    "record_id"
+  ],
+  "experiment_name": "pytest-phase3b",
+  "experiment_version": "1.0.0",
+  "feature_columns": [
+    "feature_0",
+    "feature_1"
+  ],
+  "feature_schema_version": "1.0.0",
+  "framework": "scikit-learn",
+  "hyperparameters": {
+    "max_iter": 100,
+    "random_state": 42
+  },
+  "modality": "synthetic",
+  "model_name": "pytest-model",
+  "model_version": "1.0.0",
+  "notes": "pytest synthetic only",
+  "preprocessing_version": "1.0.0",
+  "primary_metric": "f1_weighted",
+  "random_seed": 42,
+  "secondary_metrics": [
+    "balanced_accuracy"
+  ],
+  "sensitive_columns": [],
+  "split_manifest_path": "generated/temporary/pytest-phase3b-8cd369207eb94e428d77b8662efdf212/split_manifest.json",
+  "target_column": "label",
+  "task": "binary_classification",
+  "threshold_strategy": "max_f1"
+}

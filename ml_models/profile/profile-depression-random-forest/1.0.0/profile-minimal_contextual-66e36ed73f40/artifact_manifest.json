@@ -1,0 +1,38 @@
+{
+  "active": false,
+  "config_hash": "66e36ed73f4022497fcd0b4c899b4f6750b3fa5ef9bbecb9c3b0fb11a1957d0b",
+  "created_at": "2026-07-15T10:57:59.765474+00:00",
+  "feature_set": "minimal_contextual",
+  "file_hashes": {
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/candidate_comparison.csv": "12bf7dcc04e20755d86fdca7088574fad75cf0d943798d759cabc3aa407811c0",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/feature_schema.json": "b02473bb2c9d1dae05ff5879c74cde302ef9f34e893afb0568f79722f64fea1f",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/metrics.json": "748a8f200ba643aac707114da4f3a133cab03a81d785b6688fc7987de0a2a5ea",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/model.joblib": "99cde96e3c08ee329d6838d4f5320a7cb9c1ec7b5d38d045938f84c2cac037fc",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/model_card.md": "1d5ab4b7af92d83c36152c585956a68820453508bd6a6a8e81eff649ba0d324b",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/pipeline.joblib": "ed4f16845cc4a53eb8c7c70878ef811a30d977a0d190a9a3ba21c7c4e50be904",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/preprocessor.joblib": "8b3c1a642fd26dbff2a62ebac484a9889cd088c3b192a5af8b26df4ba83d038d",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/reproducibility_report.json": "ce76f8d41cddb60f7cc0247483a2f6e0b1b8dd143eaab55fc04ff3d313c66727",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/split_manifest_reference.json": "8b829b1174fc2aa23c7e1742e939d10a7016cb57703ab387b45d19266a6d3dda",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/training_config.json": "7ca4d4c272e318dbce44ecd34cc895a4f915d7f6bf8f08588c9fb9732975cc56"
+  },
+  "files": [
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/model.joblib",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/preprocessor.joblib",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/pipeline.joblib",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/training_config.json",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/metrics.json",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/candidate_comparison.csv",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/feature_schema.json",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/split_manifest_reference.json",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/model_card.md",
+    "ml_models/profile/profile-depression-random-forest/1.0.0/profile-minimal_contextual-66e36ed73f40/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "profile",
+  "model_name": "profile-depression-random-forest",
+  "model_version": "1.0.0",
+  "preprocessing_artifact_hash": "eb3cc7476160afc49ed608c988c0bb9a7e723237aa4c6f67a6a85dd37c8e0ff8",
+  "run_id": "profile-minimal_contextual-66e36ed73f40",
+  "source_fingerprint": "c0d1300dd5225b426f91ee75c81e5068efdadf528416628994a5a6e013063f0a",
+  "split_manifest_hash": "8b829b1174fc2aa23c7e1742e939d10a7016cb57703ab387b45d19266a6d3dda"
+}

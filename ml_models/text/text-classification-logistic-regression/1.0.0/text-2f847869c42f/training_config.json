@@ -1,0 +1,54 @@
+{
+  "experiment_name": "text-classification-baseline-logistic-regression",
+  "experiment_version": "1.0.0",
+  "feature_set": "normalized_text_tfidf",
+  "hyperparameter_search": {
+    "logistic_regression": {
+      "C": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "class_weight": [
+        null,
+        "balanced"
+      ],
+      "max_iter": 300,
+      "random_state": 42,
+      "solver": "liblinear"
+    }
+  },
+  "locked_split_manifest_hash": "3ca7657528787f230aa317ebb226511637a82f9b6a099b8daa8d0919c7170c8a",
+  "max_candidate_count": 24,
+  "min_validation_suicidal_recall": 0.7,
+  "model_name": "text-classification-logistic-regression",
+  "model_version": "1.0.0",
+  "primary_metric": "validation_suicidal_recall_then_macro_f1",
+  "primary_metric_rationale": "The suicidal class false-negative count is safety-relevant for research monitoring, while macro F1 discourages ignoring minority classes.",
+  "random_seed": 42,
+  "secondary_metrics": [
+    "accuracy",
+    "balanced_accuracy",
+    "macro_precision",
+    "macro_recall",
+    "macro_f1",
+    "weighted_precision",
+    "weighted_recall",
+    "weighted_f1"
+  ],
+  "task": "multiclass_classification",
+  "vectorizers": [
+    {
+      "kind": "word",
+      "max_df": 0.95,
+      "max_features": 20000,
+      "min_df": 2,
+      "name": "word_tfidf",
+      "ngram_range": [
+        1,
+        2
+      ],
+      "sublinear_tf": true
+    }
+  ]
+}

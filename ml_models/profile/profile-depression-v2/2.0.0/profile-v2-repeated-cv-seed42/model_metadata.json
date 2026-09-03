@@ -1,0 +1,28 @@
+{
+  "code_sha256": "7f402fd4a5301b98632f4adc3853cbffa9e6aee64c7c52d0b1ba1dea9a7524d9",
+  "code_version": "backend/scripts/profile_baseline_v2.py",
+  "dataset_fingerprint": "eb3cc7476160afc49ed608c988c0bb9a7e723237aa4c6f67a6a85dd37c8e0ff8",
+  "feature_list": [
+    "year_of_study",
+    "self_reported_anxiety",
+    "self_reported_panic_attack"
+  ],
+  "metric_definitions": {
+    "pr_auc": "average precision using positive-class probability for yes",
+    "precision_recall_f1": "binary metrics with yes as positive label plus macro/weighted summaries",
+    "roc_auc": "binary ROC-AUC using positive-class probability for yes"
+  },
+  "positive_label": "yes",
+  "random_seed": 42,
+  "selected_model": "logistic_balanced_C1",
+  "selected_threshold": 0.49999999999999994,
+  "source_fingerprint": "c0d1300dd5225b426f91ee75c81e5068efdadf528416628994a5a6e013063f0a",
+  "split_manifest": "generated\\manifests\\splits\\profile\\v1\\profile_split_assignments.csv",
+  "target": "target_depression",
+  "target_mapping": {
+    "no": 0,
+    "yes": 1
+  },
+  "test_ids_preserved_from_v1": true,
+  "training_timestamp": "2026-07-17T17:04:24.015573+00:00"
+}

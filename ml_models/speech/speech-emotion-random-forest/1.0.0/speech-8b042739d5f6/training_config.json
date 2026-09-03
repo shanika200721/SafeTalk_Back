@@ -1,0 +1,186 @@
+{
+  "experiment_name": "speech-emotion-acoustic-random-forest",
+  "experiment_version": "1.0.0",
+  "feature_set": "full_acoustic",
+  "feature_sets": {
+    "core_acoustic": [
+      "duration_seconds",
+      "zero_crossing_rate_mean",
+      "zero_crossing_rate_std",
+      "rms_energy_mean",
+      "rms_energy_std",
+      "spectral_centroid_mean",
+      "spectral_centroid_std",
+      "spectral_bandwidth_mean",
+      "spectral_bandwidth_std",
+      "spectral_rolloff_mean",
+      "spectral_rolloff_std",
+      "spectral_flatness_mean"
+    ],
+    "core_pitch_prosody": [
+      "duration_seconds",
+      "zero_crossing_rate_mean",
+      "zero_crossing_rate_std",
+      "rms_energy_mean",
+      "rms_energy_std",
+      "spectral_centroid_mean",
+      "spectral_centroid_std",
+      "spectral_bandwidth_mean",
+      "spectral_bandwidth_std",
+      "spectral_rolloff_mean",
+      "spectral_rolloff_std",
+      "spectral_flatness_mean",
+      "pitch_mean",
+      "pitch_std",
+      "voiced_frame_ratio",
+      "silence_ratio",
+      "pause_count",
+      "dynamic_range"
+    ],
+    "full_acoustic": [
+      "duration_seconds",
+      "zero_crossing_rate_mean",
+      "zero_crossing_rate_std",
+      "rms_energy_mean",
+      "rms_energy_std",
+      "spectral_centroid_mean",
+      "spectral_centroid_std",
+      "spectral_bandwidth_mean",
+      "spectral_bandwidth_std",
+      "spectral_rolloff_mean",
+      "spectral_rolloff_std",
+      "spectral_flatness_mean",
+      "pitch_mean",
+      "pitch_std",
+      "voiced_frame_ratio",
+      "silence_ratio",
+      "pause_count",
+      "dynamic_range",
+      "mfcc_01_mean",
+      "mfcc_01_std",
+      "mfcc_02_mean",
+      "mfcc_02_std",
+      "mfcc_03_mean",
+      "mfcc_03_std",
+      "mfcc_04_mean",
+      "mfcc_04_std",
+      "mfcc_05_mean",
+      "mfcc_05_std",
+      "mfcc_06_mean",
+      "mfcc_06_std",
+      "mfcc_07_mean",
+      "mfcc_07_std",
+      "mfcc_08_mean",
+      "mfcc_08_std",
+      "mfcc_09_mean",
+      "mfcc_09_std",
+      "mfcc_10_mean",
+      "mfcc_10_std",
+      "mfcc_11_mean",
+      "mfcc_11_std",
+      "mfcc_12_mean",
+      "mfcc_12_std",
+      "mfcc_13_mean",
+      "mfcc_13_std"
+    ]
+  },
+  "features": [
+    "duration_seconds",
+    "zero_crossing_rate_mean",
+    "zero_crossing_rate_std",
+    "rms_energy_mean",
+    "rms_energy_std",
+    "spectral_centroid_mean",
+    "spectral_centroid_std",
+    "spectral_bandwidth_mean",
+    "spectral_bandwidth_std",
+    "spectral_rolloff_mean",
+    "spectral_rolloff_std",
+    "spectral_flatness_mean",
+    "pitch_mean",
+    "pitch_std",
+    "voiced_frame_ratio",
+    "silence_ratio",
+    "pause_count",
+    "dynamic_range",
+    "mfcc_01_mean",
+    "mfcc_01_std",
+    "mfcc_02_mean",
+    "mfcc_02_std",
+    "mfcc_03_mean",
+    "mfcc_03_std",
+    "mfcc_04_mean",
+    "mfcc_04_std",
+    "mfcc_05_mean",
+    "mfcc_05_std",
+    "mfcc_06_mean",
+    "mfcc_06_std",
+    "mfcc_07_mean",
+    "mfcc_07_std",
+    "mfcc_08_mean",
+    "mfcc_08_std",
+    "mfcc_09_mean",
+    "mfcc_09_std",
+    "mfcc_10_mean",
+    "mfcc_10_std",
+    "mfcc_11_mean",
+    "mfcc_11_std",
+    "mfcc_12_mean",
+    "mfcc_12_std",
+    "mfcc_13_mean",
+    "mfcc_13_std"
+  ],
+  "hyperparameter_search": {
+    "logistic_regression": {
+      "C": [
+        1.0
+      ],
+      "class_weight": [
+        null
+      ],
+      "max_iter": 200,
+      "random_state": 42
+    },
+    "random_forest": {
+      "class_weight": [
+        null,
+        "balanced"
+      ],
+      "max_depth": [
+        8,
+        12
+      ],
+      "min_samples_leaf": [
+        1,
+        3
+      ],
+      "n_estimators": [
+        100,
+        200
+      ],
+      "n_jobs": 1,
+      "random_state": 42
+    },
+    "svm": {
+      "C": [
+        1.0
+      ],
+      "class_weight": [
+        null
+      ],
+      "kernel": [
+        "linear"
+      ],
+      "max_iter": 3000,
+      "random_state": 42
+    }
+  },
+  "locked_split_manifest_hash": "a28b530e0b2f7c87bbd7a502d5ce07036fa6d9d5fd8c466e798d32a2b4a314c6",
+  "max_candidate_count": 24,
+  "min_validation_macro_f1": 0.0,
+  "model_version": "1.0.0",
+  "primary_metric": "validation_macro_f1",
+  "random_seed": 42,
+  "selected_feature_set": "full_acoustic",
+  "task": "multiclass_classification"
+}

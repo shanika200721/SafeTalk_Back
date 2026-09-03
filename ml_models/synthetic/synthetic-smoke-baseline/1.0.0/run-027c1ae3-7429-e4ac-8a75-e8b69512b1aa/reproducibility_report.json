@@ -1,0 +1,22 @@
+{
+  "config_hash": "6d65c781045d42988d6d74fa73b6b19657f14c7550408fbdd7c38f16bf1313be",
+  "determinism_warnings": [],
+  "environment": {
+    "libraries": {
+      "numpy": "1.26.4",
+      "pandas": "2.2.2",
+      "scikit-learn": "1.5.2",
+      "scipy": "1.14.1"
+    },
+    "platform": {
+      "machine": "AMD64",
+      "release": "11",
+      "system": "Windows"
+    },
+    "python": {
+      "implementation": "CPython",
+      "python": "3.12.2"
+    }
+  },
+  "run_id": "run-027c1ae3-7429-e4ac-8a75-e8b69512b1aa"
+}

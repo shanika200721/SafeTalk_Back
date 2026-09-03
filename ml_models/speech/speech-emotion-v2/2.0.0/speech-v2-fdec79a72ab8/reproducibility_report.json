@@ -1,0 +1,13 @@
+{
+  "code_version": "724ff3b30fd420ab786447c5dfdeb47d6e0b8bff92a3ae0f5d8f69bbce7883fa",
+  "created_at": "2026-07-17T20:45:28.802488+00:00",
+  "dataset_fingerprint": {
+    "CREMA": "7f4c5e6eb67533534a4c286329e706c08f24f6e148d4df8e709647ec3b1720b5",
+    "RAVDESS": "36f177cd8eaffd44d07438437f753ec39308ccb26d598af3308252d919506f83",
+    "SAVEE": "bfc379ed6ffe131b5ee654898e060870e400c13698f0b8f7d18eb3f5224cc7a8",
+    "TESS": "6062a243ad986ef8ddc9144c787a48266c7ccce03549fe2d585aeb99e6b34871"
+  },
+  "feature_file_hash": "9e3747b9846038215aa97cd0d94e45f1362e34a79d2d10270fa8bbb294bde477",
+  "no_test_tuning": true,
+  "split_manifest_hash": "d3ef2c5b6c230e22ac7f7fcd1895c525e9df7312950ddc28649b95ef61962f59"
+}

@@ -1,0 +1,10 @@
+{
+  "weights": {
+    "dass_score": 0.25,
+    "face_score": 0.12,
+    "mood_score": 0.15,
+    "profile_score": 0.1,
+    "speech_score": 0.13,
+    "text_score": 0.25
+  }
+}

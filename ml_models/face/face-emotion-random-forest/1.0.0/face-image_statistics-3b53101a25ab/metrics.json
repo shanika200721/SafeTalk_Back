@@ -1,0 +1,475 @@
+{
+  "test": {
+    "accuracy": 0.12857142857142856,
+    "balanced_accuracy": 0.1285714285714286,
+    "confusion_matrix": [
+      [
+        0,
+        1,
+        1,
+        1,
+        0,
+        5,
+        2
+      ],
+      [
+        0,
+        2,
+        0,
+        1,
+        3,
+        2,
+        2
+      ],
+      [
+        1,
+        0,
+        0,
+        1,
+        3,
+        1,
+        4
+      ],
+      [
+        2,
+        0,
+        3,
+        3,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        2,
+        0,
+        6,
+        1
+      ],
+      [
+        0,
+        3,
+        1,
+        1,
+        1,
+        3,
+        1
+      ],
+      [
+        3,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    ],
+    "disgust_recall": 0.2,
+    "false_negatives_by_class": {
+      "angry": 10,
+      "disgust": 8,
+      "fear": 10,
+      "happy": 7,
+      "neutral": 10,
+      "sad": 7,
+      "surprise": 9
+    },
+    "labels": [
+      "angry",
+      "disgust",
+      "fear",
+      "happy",
+      "neutral",
+      "sad",
+      "surprise"
+    ],
+    "macro_f1": 0.11510920157536698,
+    "macro_precision": 0.10901875901875901,
+    "macro_recall": 0.1285714285714286,
+    "minimum_class_recall": 0.0,
+    "overpredicts_happy_or_neutral": [],
+    "per_class": {
+      "angry": {
+        "f1": 0.0,
+        "false_negatives": 10,
+        "precision": 0.0,
+        "recall": 0.0,
+        "support": 10
+      },
+      "disgust": {
+        "f1": 0.21052631578947367,
+        "false_negatives": 8,
+        "precision": 0.2222222222222222,
+        "recall": 0.2,
+        "support": 10
+      },
+      "fear": {
+        "f1": 0.0,
+        "false_negatives": 10,
+        "precision": 0.0,
+        "recall": 0.0,
+        "support": 10
+      },
+      "happy": {
+        "f1": 0.3,
+        "false_negatives": 7,
+        "precision": 0.3,
+        "recall": 0.3,
+        "support": 10
+      },
+      "neutral": {
+        "f1": 0.0,
+        "false_negatives": 10,
+        "precision": 0.0,
+        "recall": 0.0,
+        "support": 10
+      },
+      "sad": {
+        "f1": 0.2,
+        "false_negatives": 7,
+        "precision": 0.15,
+        "recall": 0.3,
+        "support": 10
+      },
+      "surprise": {
+        "f1": 0.09523809523809523,
+        "false_negatives": 9,
+        "precision": 0.09090909090909091,
+        "recall": 0.1,
+        "support": 10
+      }
+    },
+    "prediction_distribution": {
+      "angry": 6,
+      "disgust": 9,
+      "fear": 6,
+      "happy": 10,
+      "neutral": 8,
+      "sad": 20,
+      "surprise": 11
+    },
+    "split": "test",
+    "weighted_f1": 0.11510920157536698,
+    "worst_performing_class": "angry"
+  },
+  "train": {
+    "accuracy": 0.9571428571428572,
+    "balanced_accuracy": 0.9571428571428571,
+    "confusion_matrix": [
+      [
+        9,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        9,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        9,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10
+      ]
+    ],
+    "disgust_recall": 1.0,
+    "false_negatives_by_class": {
+      "angry": 1,
+      "disgust": 0,
+      "fear": 1,
+      "happy": 1,
+      "neutral": 0,
+      "sad": 0,
+      "surprise": 0
+    },
+    "labels": [
+      "angry",
+      "disgust",
+      "fear",
+      "happy",
+      "neutral",
+      "sad",
+      "surprise"
+    ],
+    "macro_f1": 0.9570354457572502,
+    "macro_precision": 0.961038961038961,
+    "macro_recall": 0.9571428571428571,
+    "minimum_class_recall": 0.9,
+    "overpredicts_happy_or_neutral": [],
+    "per_class": {
+      "angry": {
+        "f1": 0.9473684210526315,
+        "false_negatives": 1,
+        "precision": 1.0,
+        "recall": 0.9,
+        "support": 10
+      },
+      "disgust": {
+        "f1": 0.9523809523809523,
+        "false_negatives": 0,
+        "precision": 0.9090909090909091,
+        "recall": 1.0,
+        "support": 10
+      },
+      "fear": {
+        "f1": 0.9473684210526315,
+        "false_negatives": 1,
+        "precision": 1.0,
+        "recall": 0.9,
+        "support": 10
+      },
+      "happy": {
+        "f1": 0.9473684210526315,
+        "false_negatives": 1,
+        "precision": 1.0,
+        "recall": 0.9,
+        "support": 10
+      },
+      "neutral": {
+        "f1": 0.9523809523809523,
+        "false_negatives": 0,
+        "precision": 0.9090909090909091,
+        "recall": 1.0,
+        "support": 10
+      },
+      "sad": {
+        "f1": 0.9523809523809523,
+        "false_negatives": 0,
+        "precision": 0.9090909090909091,
+        "recall": 1.0,
+        "support": 10
+      },
+      "surprise": {
+        "f1": 1.0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 10
+      }
+    },
+    "prediction_distribution": {
+      "angry": 9,
+      "disgust": 11,
+      "fear": 9,
+      "happy": 9,
+      "neutral": 11,
+      "sad": 11,
+      "surprise": 10
+    },
+    "split": "train",
+    "train_validation_gap": {
+      "balanced_accuracy_train_minus_validation": 0.7428571428571428,
+      "macro_f1_train_minus_validation": 0.7504594820384294,
+      "macro_recall_train_minus_validation": 0.7428571428571428
+    },
+    "weighted_f1": 0.9570354457572502,
+    "worst_performing_class": "angry"
+  },
+  "validation": {
+    "accuracy": 0.21428571428571427,
+    "balanced_accuracy": 0.21428571428571427,
+    "confusion_matrix": [
+      [
+        1,
+        0,
+        3,
+        3,
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        4,
+        2,
+        0,
+        1,
+        2,
+        0
+      ],
+      [
+        1,
+        2,
+        2,
+        2,
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        2
+      ],
+      [
+        0,
+        2,
+        0,
+        3,
+        1,
+        3,
+        1
+      ],
+      [
+        2,
+        1,
+        2,
+        1,
+        0,
+        4,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        3,
+        2,
+        2,
+        1
+      ]
+    ],
+    "disgust_recall": 0.4,
+    "false_negatives_by_class": {
+      "angry": 9,
+      "disgust": 6,
+      "fear": 8,
+      "happy": 8,
+      "neutral": 9,
+      "sad": 6,
+      "surprise": 9
+    },
+    "labels": [
+      "angry",
+      "disgust",
+      "fear",
+      "happy",
+      "neutral",
+      "sad",
+      "surprise"
+    ],
+    "macro_f1": 0.20657596371882087,
+    "macro_precision": 0.20862708719851572,
+    "macro_recall": 0.21428571428571427,
+    "minimum_class_recall": 0.1,
+    "overpredicts_happy_or_neutral": [],
+    "per_class": {
+      "angry": {
+        "f1": 0.1111111111111111,
+        "false_negatives": 9,
+        "precision": 0.125,
+        "recall": 0.1,
+        "support": 10
+      },
+      "disgust": {
+        "f1": 0.4,
+        "false_negatives": 6,
+        "precision": 0.4,
+        "recall": 0.4,
+        "support": 10
+      },
+      "fear": {
+        "f1": 0.19047619047619047,
+        "false_negatives": 8,
+        "precision": 0.18181818181818182,
+        "recall": 0.2,
+        "support": 10
+      },
+      "happy": {
+        "f1": 0.16666666666666666,
+        "false_negatives": 8,
+        "precision": 0.14285714285714285,
+        "recall": 0.2,
+        "support": 10
+      },
+      "neutral": {
+        "f1": 0.13333333333333333,
+        "false_negatives": 9,
+        "precision": 0.2,
+        "recall": 0.1,
+        "support": 10
+      },
+      "sad": {
+        "f1": 0.3333333333333333,
+        "false_negatives": 6,
+        "precision": 0.2857142857142857,
+        "recall": 0.4,
+        "support": 10
+      },
+      "surprise": {
+        "f1": 0.1111111111111111,
+        "false_negatives": 9,
+        "precision": 0.125,
+        "recall": 0.1,
+        "support": 10
+      }
+    },
+    "prediction_distribution": {
+      "angry": 8,
+      "disgust": 10,
+      "fear": 11,
+      "happy": 14,
+      "neutral": 5,
+      "sad": 14,
+      "surprise": 8
+    },
+    "split": "validation",
+    "weighted_f1": 0.20657596371882084,
+    "worst_performing_class": "angry"
+  }
+}

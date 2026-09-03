@@ -1,0 +1,11 @@
+{
+  "architecture": "mobilenet",
+  "batch_size": 32,
+  "epochs": 1,
+  "fine_tune_epochs": 0,
+  "max_train_records": 140,
+  "model_dir": "ml_models/face/face-emotion-mobilenetv2-transfer/1.0.0/smoke",
+  "output_dir": "generated/reports/face_cnn/smoke_mobilenet",
+  "patience": 1,
+  "seed": 43107
+}

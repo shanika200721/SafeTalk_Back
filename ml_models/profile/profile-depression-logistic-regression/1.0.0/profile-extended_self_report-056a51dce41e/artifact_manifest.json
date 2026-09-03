@@ -1,0 +1,38 @@
+{
+  "active": false,
+  "config_hash": "056a51dce41ec53b50e907832360df1c507974d18ed907f49f4385330266bedf",
+  "created_at": "2026-07-15T10:58:36.537147+00:00",
+  "feature_set": "extended_self_report",
+  "file_hashes": {
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/candidate_comparison.csv": "f759e69cdca740d23b7341a8f45dd8e7bad190a1ba5c1e47c29f45f2abc838b1",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/feature_schema.json": "f7722b949294ca5f7770608828b1e3b5dea4e7d5203273a3fbf89cec60a0bb6d",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/metrics.json": "41a362733b34fa0dfb4a5eada0dc31d069f903ca0b73257b5c56f37a1df02435",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/model.joblib": "633104b15e001107970f3d0829613637f975a14ea8b7b3cf950f0960466f1d45",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/model_card.md": "aed653a5935965ea749c74c1af65d1614e4dd0c11fd18ef4c2dd28df7fbaced4",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/pipeline.joblib": "417ec601d26b1adbfa7a97e43636f5a9ce5635c5df22b35ea884a709b5629af8",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/preprocessor.joblib": "10c34ef1df0d21ab0b76990b22e27b1e7b366ad7c0e8fbd4debbdc8a55f5ba88",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/reproducibility_report.json": "a8684a708abd0fd757b02846816bf833b46ea8d70718ade38fdcc0bcac3e9cdf",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/split_manifest_reference.json": "8b829b1174fc2aa23c7e1742e939d10a7016cb57703ab387b45d19266a6d3dda",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/training_config.json": "ca388d98d3c41ca19fba433cb7e70d9579c8bfc50c5d07a5ae2163d3ac17df97"
+  },
+  "files": [
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/model.joblib",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/preprocessor.joblib",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/pipeline.joblib",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/training_config.json",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/metrics.json",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/candidate_comparison.csv",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/feature_schema.json",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/split_manifest_reference.json",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/model_card.md",
+    "ml_models/profile/profile-depression-logistic-regression/1.0.0/profile-extended_self_report-056a51dce41e/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "profile",
+  "model_name": "profile-depression-logistic-regression",
+  "model_version": "1.0.0",
+  "preprocessing_artifact_hash": "eb3cc7476160afc49ed608c988c0bb9a7e723237aa4c6f67a6a85dd37c8e0ff8",
+  "run_id": "profile-extended_self_report-056a51dce41e",
+  "source_fingerprint": "c0d1300dd5225b426f91ee75c81e5068efdadf528416628994a5a6e013063f0a",
+  "split_manifest_hash": "8b829b1174fc2aa23c7e1742e939d10a7016cb57703ab387b45d19266a6d3dda"
+}

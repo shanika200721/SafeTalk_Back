@@ -1,0 +1,19 @@
+{
+  "complete_vocabulary_exposed": false,
+  "feature_count": 20000,
+  "vectorizer_config": {
+    "kind": "word",
+    "max_df": 0.95,
+    "max_features": 20000,
+    "min_df": 2,
+    "name": "word_tfidf",
+    "ngram_range": [
+      1,
+      2
+    ],
+    "sublinear_tf": true
+  },
+  "vectorizer_name": "word_tfidf",
+  "vectorizer_version": "1.0.0",
+  "vocabulary_hash": "77a272a1417dc347431228d4cf88a538bc8ad515ff5c4504e3d025cd8b45c444"
+}

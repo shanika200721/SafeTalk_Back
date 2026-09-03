@@ -1,0 +1,39 @@
+{
+  "active": false,
+  "config_hash": "e8d74030dfffbfba32ea4fbfecc31ea437ec204acf922f23e92b9a58f2f443aa",
+  "created_at": "2026-07-15T12:05:00.386611+00:00",
+  "file_hashes": {
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/candidate_comparison.csv": "16de6eb76ea222c09c22c8b587be33c90fbbb40139c02a03a948f561e7bd6092",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/feature_schema.json": "92410961ea8a279a5833c82a64a2916f71a17b8f7d4a39b53ad5025c1ce721ab",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/metrics.json": "32fe5132ef13a6391b9a779e4a59123954289e1f71afb4317f4c8222d8d20e5e",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/model.joblib": "b3881d417a22668a373fef7b7a791491983063b4465896cda0b5419400b35890",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/model_card.md": "9b3c84e1eac4340e174c61c66d8f9057c0a781cb9a4cbc85312209dad762153b",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/pipeline.joblib": "d397b1a1a881d88c331b9a17b529a30e00d44b4a134f3ff34f723ddde805aec8",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/reproducibility_report.json": "0877ea9568b0ac397a3246147a571d2b307b8f2e310fe35aa052753e2c345ae7",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/split_manifest_reference.json": "3ca7657528787f230aa317ebb226511637a82f9b6a099b8daa8d0919c7170c8a",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/training_config.json": "d7ee8c1d072d52ff03e4c200a92069aa36f1c82d4ab0e09076a75490270dfc96",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/vectorizer.joblib": "59e89502e011add6b004656ec7d7f5e1f93c875688c6c467cdbc1ce5ceeeabb9",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/vocabulary_metadata.json": "4a7cf4e9ab094689265aada54f5d42fd1c5ab0201328b80e557e3cf445088b95"
+  },
+  "files": [
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/model.joblib",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/vectorizer.joblib",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/pipeline.joblib",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/training_config.json",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/metrics.json",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/candidate_comparison.csv",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/feature_schema.json",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/split_manifest_reference.json",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/vocabulary_metadata.json",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/model_card.md",
+    "ml_models/text/text-classification-logistic-regression/1.0.0/text-e8d74030dfff/reproducibility_report.json"
+  ],
+  "manifest_version": "1.0.0",
+  "modality": "text",
+  "model_name": "text-classification-logistic-regression",
+  "model_version": "1.0.0",
+  "preprocessing_artifact_hash": "8d00020f238aa1a0166f3153b4a8687a7db3799030e86adbaa49b7db76a00ef1",
+  "run_id": "text-e8d74030dfff",
+  "source_fingerprint": "d41cdc3ec3b8dde8f5553accaccd1a01a59c1440d83d7af6856fab77605c9471",
+  "split_manifest_hash": "3ca7657528787f230aa317ebb226511637a82f9b6a099b8daa8d0919c7170c8a"
+}

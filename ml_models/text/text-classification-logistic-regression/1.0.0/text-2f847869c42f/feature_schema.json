@@ -1,0 +1,5 @@
+{
+  "source": "generated/preprocessing/text/v1/text_feature_schema.json",
+  "target_column": "canonical_label",
+  "text_column": "normalized_text"
+}

@@ -1,0 +1,47 @@
+{
+  "active": false,
+  "candidate": "logistic_regression_C=1.0_class_weight=balanced",
+  "evaluation_version": "1.0.0",
+  "fold": {
+    "excluded_labels": [
+      "calm",
+      "surprised"
+    ],
+    "fold_name": "hold_out_ravdess",
+    "included_labels": [
+      "neutral",
+      "happy",
+      "sad",
+      "angry",
+      "fearful",
+      "disgust"
+    ],
+    "notes": [
+      "Validation speakers are drawn only from training corpora.",
+      "Held-out corpus records are test-only."
+    ],
+    "random_seed": 42,
+    "speaker_grouping_required": true,
+    "test_corpus": "RAVDESS",
+    "training_corpora": [
+      "CREMA",
+      "SAVEE",
+      "TESS"
+    ],
+    "validation_corpora": [
+      "CREMA",
+      "SAVEE",
+      "TESS"
+    ]
+  },
+  "hyperparameters": {
+    "C": 1.0,
+    "class_weight": "balanced",
+    "max_iter": 250,
+    "random_state": 42,
+    "solver": "lbfgs"
+  },
+  "policy_version": "1.0.0",
+  "registered": false,
+  "research_artifact_only": true
+}

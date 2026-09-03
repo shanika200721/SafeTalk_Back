@@ -1,0 +1,256 @@
+{
+  "artifact_manifest_path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-3943c63e-68a3-d86b-2d37-9d7a9d216b2f/artifact_manifest.json",
+  "completed_at": "2026-08-08T22:30:25.968562+00:00",
+  "config_hash": "d3558dc964a7eb932325c559c7dc52186fc26982232c952b137ffd46e7650d26",
+  "dataset_reference": {
+    "manifest_hash": "904faa937051cbe593301e0dfd9cd36c756f54362c5297bfd1d402395ce193e7",
+    "preprocessing_artifact_hash": "bed393fbfa54e2217212e901c21e9259d08ecbfae8d76e081e517d4c44ab4b91",
+    "source_fingerprint": "5ecf3d7cdd932ce17e44e862c8a21812f1428a511005791bba2c152fa4d6cbd6",
+    "test_ids": [
+      "synthetic-048",
+      "synthetic-049",
+      "synthetic-050",
+      "synthetic-051",
+      "synthetic-052",
+      "synthetic-053",
+      "synthetic-054",
+      "synthetic-055",
+      "synthetic-056",
+      "synthetic-057",
+      "synthetic-058",
+      "synthetic-059"
+    ],
+    "train_ids": [
+      "synthetic-000",
+      "synthetic-001",
+      "synthetic-002",
+      "synthetic-003",
+      "synthetic-004",
+      "synthetic-005",
+      "synthetic-006",
+      "synthetic-007",
+      "synthetic-008",
+      "synthetic-009",
+      "synthetic-010",
+      "synthetic-011",
+      "synthetic-012",
+      "synthetic-013",
+      "synthetic-014",
+      "synthetic-015",
+      "synthetic-016",
+      "synthetic-017",
+      "synthetic-018",
+      "synthetic-019",
+      "synthetic-020",
+      "synthetic-021",
+      "synthetic-022",
+      "synthetic-023",
+      "synthetic-024",
+      "synthetic-025",
+      "synthetic-026",
+      "synthetic-027",
+      "synthetic-028",
+      "synthetic-029",
+      "synthetic-030",
+      "synthetic-031",
+      "synthetic-032",
+      "synthetic-033",
+      "synthetic-034",
+      "synthetic-035"
+    ],
+    "validation_ids": [
+      "synthetic-036",
+      "synthetic-037",
+      "synthetic-038",
+      "synthetic-039",
+      "synthetic-040",
+      "synthetic-041",
+      "synthetic-042",
+      "synthetic-043",
+      "synthetic-044",
+      "synthetic-045",
+      "synthetic-046",
+      "synthetic-047"
+    ]
+  },
+  "metrics_path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-3943c63e-68a3-d86b-2d37-9d7a9d216b2f/metrics.json",
+  "model_artifact_path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-3943c63e-68a3-d86b-2d37-9d7a9d216b2f/model.joblib",
+  "model_card_path": "ml_models/synthetic/synthetic-smoke-baseline/1.0.0-multiclass/run-3943c63e-68a3-d86b-2d37-9d7a9d216b2f/model_card.md",
+  "run_id": "run-3943c63e-68a3-d86b-2d37-9d7a9d216b2f",
+  "selected_thresholds": {
+    "strategy": "argmax",
+    "thresholds": null
+  },
+  "started_at": "2026-08-08T22:30:25.718137+00:00",
+  "status": "completed",
+  "test_metrics": {
+    "accuracy": 0.8333333333333334,
+    "balanced_accuracy": 0.85,
+    "confusion_matrix": [
+      [
+        3,
+        0,
+        1
+      ],
+      [
+        0,
+        3,
+        0
+      ],
+      [
+        1,
+        0,
+        4
+      ]
+    ],
+    "f1_macro": 0.85,
+    "f1_weighted": 0.8333333333333334,
+    "log_loss": 0.5135979892895192,
+    "per_class_metrics": {
+      "class_0": {
+        "f1": 0.75,
+        "precision": 0.75,
+        "recall": 0.75,
+        "support": 4.0
+      },
+      "class_1": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "support": 3.0
+      },
+      "class_2": {
+        "f1": 0.8,
+        "precision": 0.8,
+        "recall": 0.8,
+        "support": 5.0
+      }
+    },
+    "pr_auc": 0.931111111111111,
+    "precision_macro": 0.85,
+    "precision_weighted": 0.8333333333333334,
+    "recall_macro": 0.85,
+    "recall_weighted": 0.8333333333333334,
+    "roc_auc": 0.9505952380952382,
+    "support": {
+      "class_0": 4,
+      "class_1": 3,
+      "class_2": 5
+    },
+    "warnings": []
+  },
+  "train_metrics": {
+    "accuracy": 0.8611111111111112,
+    "balanced_accuracy": 0.8607226107226107,
+    "confusion_matrix": [
+      [
+        9,
+        1,
+        2
+      ],
+      [
+        1,
+        12,
+        0
+      ],
+      [
+        0,
+        1,
+        10
+      ]
+    ],
+    "f1_macro": 0.8588786414873372,
+    "f1_weighted": 0.8594154101400479,
+    "log_loss": 0.48334689358333816,
+    "per_class_metrics": {
+      "class_0": {
+        "f1": 0.8181818181818182,
+        "precision": 0.9,
+        "recall": 0.75,
+        "support": 12.0
+      },
+      "class_1": {
+        "f1": 0.8888888888888888,
+        "precision": 0.8571428571428571,
+        "recall": 0.9230769230769231,
+        "support": 13.0
+      },
+      "class_2": {
+        "f1": 0.8695652173913043,
+        "precision": 0.8333333333333334,
+        "recall": 0.9090909090909091,
+        "support": 11.0
+      }
+    },
+    "pr_auc": 0.8479466603575337,
+    "precision_macro": 0.8634920634920635,
+    "precision_weighted": 0.8641534391534392,
+    "recall_macro": 0.8607226107226107,
+    "recall_weighted": 0.8611111111111112,
+    "roc_auc": 0.9253364328907807,
+    "support": {
+      "class_0": 12,
+      "class_1": 13,
+      "class_2": 11
+    },
+    "warnings": []
+  },
+  "training_framework_version": "1.0.0",
+  "validation_metrics": {
+    "accuracy": 0.75,
+    "balanced_accuracy": 0.75,
+    "confusion_matrix": [
+      [
+        2,
+        0,
+        2
+      ],
+      [
+        0,
+        4,
+        0
+      ],
+      [
+        0,
+        1,
+        3
+      ]
+    ],
+    "f1_macro": 0.7407407407407406,
+    "f1_weighted": 0.7407407407407406,
+    "log_loss": 0.5847612272244811,
+    "per_class_metrics": {
+      "class_0": {
+        "f1": 0.6666666666666666,
+        "precision": 1.0,
+        "recall": 0.5,
+        "support": 4.0
+      },
+      "class_1": {
+        "f1": 0.8888888888888888,
+        "precision": 0.8,
+        "recall": 1.0,
+        "support": 4.0
+      },
+      "class_2": {
+        "f1": 0.6666666666666666,
+        "precision": 0.6,
+        "recall": 0.75,
+        "support": 4.0
+      }
+    },
+    "pr_auc": 0.7535714285714286,
+    "precision_macro": 0.7999999999999999,
+    "precision_weighted": 0.7999999999999999,
+    "recall_macro": 0.75,
+    "recall_weighted": 0.75,
+    "roc_auc": 0.84375,
+    "support": {
+      "class_0": 4,
+      "class_1": 4,
+      "class_2": 4
+    },
+    "warnings": []
+  },
+  "warnings": []
+}

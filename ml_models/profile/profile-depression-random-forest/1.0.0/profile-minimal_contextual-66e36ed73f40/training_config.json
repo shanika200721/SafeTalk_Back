@@ -1,0 +1,83 @@
+{
+  "allow_sensitive_context": false,
+  "experiment_name": "profile-depression-baseline",
+  "experiment_version": "1.0.0",
+  "feature_set": "minimal_contextual",
+  "feature_sets": {
+    "extended_self_report": [
+      "year_of_study",
+      "self_reported_anxiety",
+      "self_reported_panic_attack"
+    ],
+    "minimal_contextual": [
+      "year_of_study"
+    ],
+    "sensitive_context_exploratory": [
+      "year_of_study",
+      "age",
+      "gender",
+      "course",
+      "cgpa_band",
+      "marital_status"
+    ]
+  },
+  "features": [
+    "year_of_study"
+  ],
+  "hyperparameter_search": {
+    "logistic_regression": {
+      "C": [
+        0.1,
+        1.0,
+        10.0
+      ],
+      "class_weight": [
+        null,
+        "balanced"
+      ],
+      "max_iter": 500,
+      "random_state": 42
+    },
+    "random_forest": {
+      "class_weight": [
+        null,
+        "balanced"
+      ],
+      "max_depth": [
+        2,
+        4
+      ],
+      "min_samples_leaf": [
+        1,
+        3
+      ],
+      "n_estimators": [
+        50,
+        100
+      ],
+      "random_state": 42
+    }
+  },
+  "max_candidate_count": 32,
+  "min_validation_recall": 0.6,
+  "model_version": "1.0.0",
+  "primary_metric": "validation_recall_then_f1",
+  "primary_metric_rationale": "False negatives matter in a screening-style research baseline, but F1 guards against selecting a model that predicts every record as positive.",
+  "random_seed": 42,
+  "secondary_metrics": [
+    "balanced_accuracy",
+    "precision",
+    "recall",
+    "f1",
+    "roc_auc",
+    "pr_auc",
+    "brier_score"
+  ],
+  "selected_feature_set": "minimal_contextual",
+  "task": "binary_classification",
+  "threshold_strategies": [
+    "default",
+    "max_f1",
+    "recall_priority"
+  ]
+}
