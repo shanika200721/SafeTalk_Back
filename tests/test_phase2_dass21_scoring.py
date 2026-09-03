@@ -40,7 +40,7 @@ from app.ml.preprocessing.dass21.scoring import (
     score_dass21,
     validate_dass21_responses,
 )
-from app.models.database_models import Alert, DASS21Assessment
+from app.models.database_models import Alert, ConsentRecord, DASS21Assessment
 from app.routes import assessments
 from app.utils.dass21_calculator import DASS21Calculator
 
@@ -282,10 +282,26 @@ class FakeDB:
     def commit(self):
         pass
 
+    def flush(self):
+        for index, item in enumerate(self.added, start=1):
+            if getattr(item, "id", None) is None:
+                item.id = index
+
     def refresh(self, item):
         item.id = item.id or 1
         if item.created_at is None:
             item.created_at = datetime.now(timezone.utc)
+
+    def query(self, model):
+        if model is ConsentRecord:
+            return SimpleNamespace(
+                filter=lambda *args, **kwargs: SimpleNamespace(
+                    order_by=lambda *args, **kwargs: SimpleNamespace(
+                        first=lambda: SimpleNamespace(is_granted=True, withdrawn_at=None)
+                    )
+                )
+            )
+        raise AssertionError(f"Unexpected fake query model: {model}")
 
 
 def test_assessment_submission_endpoint_scoring_stored_values_and_no_alert_creation():

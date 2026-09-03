@@ -1,0 +1,97 @@
+{
+  "version": "runtime-mapping-v1",
+  "mappings": {
+    "profile": {
+      "accepted_output_types": ["heuristic", "machine_learning"],
+      "heuristic": {
+        "source_output_type": "heuristic",
+        "source_field": "score_0_100",
+        "input_range": [0, 100],
+        "output_fusion_range": [0, 1],
+        "transformation": "divide_by_100",
+        "clipping_policy": "reject_out_of_range",
+        "null_policy": "exclude",
+        "mapping_version": "profile-runtime-mapping-v1",
+        "justification": "ProfileRiskCalculator documents a 0-100 score where higher values represent greater concern.",
+        "limitations": ["Heuristic profile risk is supporting evidence only, not suicide probability."]
+      },
+      "machine_learning": {
+        "source_output_type": "machine_learning",
+        "source_field": "probability",
+        "input_range": [0, 1],
+        "output_fusion_range": [0, 1],
+        "transformation": "identity",
+        "clipping_policy": "reject_out_of_range",
+        "null_policy": "exclude",
+        "mapping_version": "profile-ml-runtime-mapping-v1",
+        "justification": "Phase 4D verified the active profile model probability as the yes depression class.",
+        "limitations": ["Depression-class probability is supporting risk evidence, not suicide probability."]
+      }
+    },
+    "dass21": {
+      "accepted_output_types": ["rule_based"],
+      "source_output_type": "rule_based",
+      "source_field": "score_0_100",
+      "input_range": [0, 100],
+      "output_fusion_range": [0, 1],
+      "transformation": "divide_by_100",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "dass21-runtime-mapping-v1",
+      "justification": "The canonical DASS-21 prediction stores total DASS-21 score normalized from the 126 maximum into a 0-100 engineering screening score.",
+      "limitations": ["DASS-21 scoring itself is unchanged and is not a suicide-risk diagnosis."]
+    },
+    "mood": {
+      "accepted_output_types": ["heuristic"],
+      "source_output_type": "heuristic",
+      "source_field": "score_0_100",
+      "input_range": [0, 100],
+      "output_fusion_range": [0, 1],
+      "transformation": "divide_by_100",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "mood-runtime-mapping-v1",
+      "justification": "DailyCheckInCalculator documents a 0-100 score where higher values represent greater concern; no inversion is needed.",
+      "limitations": ["Mood/check-in heuristic is short-term screening support only."]
+    },
+    "text": {
+      "accepted_output_types": ["machine_learning"],
+      "source_output_type": "machine_learning",
+      "source_field": "probability",
+      "input_range": [0, 1],
+      "output_fusion_range": [0, 1],
+      "transformation": "identity",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "text-runtime-mapping-v1",
+      "justification": "Phase 4D verified the active text model probability as the suicidal class probability.",
+      "limitations": ["Classifier output is not a calibrated clinical suicide probability.", "SafeTalk intent output is not used as text modality evidence."]
+    },
+    "speech": {
+      "accepted_output_types": ["machine_learning"],
+      "source_output_type": "machine_learning",
+      "source_field": "probability",
+      "input_range": [0, 1],
+      "output_fusion_range": [0, 1],
+      "transformation": "identity",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "speech-runtime-mapping-v2",
+      "justification": "Phase 4K permits speech only after runtime verification, consent, freshness, and fusion eligibility pass.",
+      "limitations": ["Voice-emotion output is supporting screening evidence only, not suicidal intent."]
+    },
+    "face": {
+      "accepted_output_types": ["machine_learning"],
+      "source_output_type": "machine_learning",
+      "source_field": "probability",
+      "input_range": [0, 1],
+      "output_fusion_range": [0, 1],
+      "transformation": "identity",
+      "clipping_policy": "reject_out_of_range",
+      "null_policy": "exclude",
+      "mapping_version": "face-runtime-mapping-v2",
+      "justification": "Phase 4K permits face only after runtime verification, explicit consent, freshness, reliability approval, and fusion eligibility pass.",
+      "limitations": ["Facial-emotion output is experimental support only unless separately approved; it is not a diagnosis."]
+    }
+  }
+}

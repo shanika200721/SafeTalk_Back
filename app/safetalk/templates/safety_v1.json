@@ -1,0 +1,131 @@
+{
+  "version": "safetalk-safety-v1",
+  "templates": {
+    "greeting_v1": {
+      "route": "greeting",
+      "severity": "none",
+      "response": "Hi. I'm here with you. How are you feeling today?",
+      "follow_up": null,
+      "recommended_actions": [],
+      "resource_actions": [],
+      "prohibited_claims": ["diagnosis", "counselor_contacted", "emergency_services_contacted"]
+    },
+    "positive_or_stable_v1": {
+      "route": "positive_or_stable",
+      "severity": "none",
+      "response": "I'm glad to hear that. What helped today feel a little better?",
+      "follow_up": null,
+      "recommended_actions": [],
+      "resource_actions": [],
+      "prohibited_claims": ["diagnosis", "risk_detection_claim"]
+    },
+    "emotional_disclosure_v1": {
+      "route": "emotional_disclosure",
+      "severity": "low",
+      "response": "I'm sorry this feels heavy right now. It makes sense to want someone to hear it.",
+      "follow_up": "What feels most difficult about it today?",
+      "recommended_actions": ["Try one small grounding step: slow your breathing and name one thing you can do in the next few minutes."],
+      "resource_actions": [],
+      "prohibited_claims": ["diagnosis", "suicide_assumption"]
+    },
+    "coping_support_request_v1": {
+      "route": "coping_support_request",
+      "severity": "low",
+      "response": "Let's keep this practical. Try breathing in for 4 counts, holding for 2, and breathing out for 6. Repeat it three times and let your shoulders drop as you exhale.",
+      "follow_up": "Would you like a sleep, exam-stress, or grounding exercise next?",
+      "recommended_actions": ["Open a breathing or grounding activity if you want a guided exercise."],
+      "resource_actions": [{"type": "open_in_app", "label": "Open support resources", "target": "/resources"}],
+      "prohibited_claims": ["diagnosis"]
+    },
+    "mental_health_information_v1": {
+      "route": "mental_health_information",
+      "severity": "none",
+      "response": "I can share general information, but I can't diagnose you. Mental-health terms describe patterns of experience, and a qualified professional is the right person to interpret them for your situation.",
+      "follow_up": "What term or result would you like to understand?",
+      "recommended_actions": [],
+      "resource_actions": [{"type": "open_in_app", "label": "Open support resources", "target": "/resources"}],
+      "prohibited_claims": ["diagnosis"]
+    },
+    "severe_distress_v1": {
+      "route": "severe_distress",
+      "severity": "medium",
+      "response": "That sounds extremely hard to carry. I want to check on your safety directly.",
+      "follow_up": "Are you in immediate danger or thinking about hurting yourself?",
+      "recommended_actions": ["Consider contacting someone you trust so you do not have to sit with this alone."],
+      "resource_actions": [{"type": "trusted_contact", "label": "Contact someone I trust"}],
+      "prohibited_claims": ["suicide_diagnosis", "counselor_contacted"]
+    },
+    "possible_self_harm_or_crisis_v1": {
+      "route": "possible_self_harm_or_crisis",
+      "severity": "high",
+      "response": "I'm really sorry you're facing this. Your safety matters right now.",
+      "follow_up": "Are you thinking about hurting yourself, or are you in immediate danger?",
+      "recommended_actions": ["Please contact someone you trust now, such as a friend, family member, counselor, or nearby staff member."],
+      "resource_actions": [{"type": "trusted_contact", "label": "Contact someone I trust"}, {"type": "support_resources", "label": "Open support resources"}],
+      "prohibited_claims": ["diagnosis", "counselor_contacted", "emergency_services_contacted"]
+    },
+    "explicit_suicidal_intent_v1": {
+      "route": "explicit_suicidal_intent",
+      "severity": "crisis",
+      "response": "I'm really sorry you're facing this. Your immediate safety matters right now. Please contact a trusted person, counselor, emergency service, or crisis support now. SafeTalk cannot contact emergency services or guarantee an immediate human response.",
+      "follow_up": "Are you in immediate danger or have you already taken any action?",
+      "recommended_actions": ["Move away from anything you could use to hurt yourself, if you can do so safely.", "Please stay with someone or ask someone to come to you."],
+      "resource_actions": [{"type": "emergency", "label": "Call emergency services"}, {"type": "trusted_contact", "label": "Contact someone I trust"}, {"type": "support_resources", "label": "Open support resources"}],
+      "prohibited_claims": ["counselor_contacted", "emergency_services_contacted", "guaranteed_safety"]
+    },
+    "imminent_self_harm_v1": {
+      "route": "imminent_self_harm",
+      "severity": "imminent",
+      "response": "I'm really sorry you're facing this. Your immediate safety matters right now. Call local emergency services now or go to the nearest emergency department. SafeTalk cannot contact emergency services or guarantee an immediate human response.",
+      "follow_up": null,
+      "recommended_actions": ["Move away from anything you could use to hurt yourself, if you can do so safely.", "Please stay with someone or ask someone to come to you right now."],
+      "resource_actions": [{"type": "emergency", "label": "Call emergency services"}, {"type": "trusted_contact", "label": "Contact someone I trust"}],
+      "prohibited_claims": ["counselor_contacted", "emergency_services_contacted", "guaranteed_safety"]
+    },
+    "gratitude_or_closing_v1": {
+      "route": "gratitude_or_closing",
+      "severity": "none",
+      "response": "You're welcome. Take care of yourself, and you can come back here whenever you want to talk.",
+      "follow_up": null,
+      "recommended_actions": [],
+      "resource_actions": [],
+      "prohibited_claims": ["diagnosis"]
+    },
+    "unclear_or_other_v1": {
+      "route": "unclear_or_other",
+      "severity": "none",
+      "response": "I want to understand you correctly. Could you say a little more about what you mean?",
+      "follow_up": null,
+      "recommended_actions": [],
+      "resource_actions": [],
+      "prohibited_claims": ["diagnosis", "risk_detection_claim"]
+    },
+    "context_safety_yes_v1": {
+      "route": "explicit_suicidal_intent",
+      "severity": "crisis",
+      "response": "Thank you for answering directly. Your immediate safety matters right now. Please contact a trusted person, counselor, emergency service, or crisis support now. SafeTalk cannot contact emergency services or guarantee an immediate human response.",
+      "follow_up": "Are you in immediate danger or have you already taken any action?",
+      "recommended_actions": ["Move away from anything you could use to hurt yourself, if you can do so safely.", "Please stay with someone or ask someone to come to you."],
+      "resource_actions": [{"type": "emergency", "label": "Call emergency services"}, {"type": "trusted_contact", "label": "Contact someone I trust"}, {"type": "support_resources", "label": "Open support resources"}],
+      "prohibited_claims": ["counselor_contacted", "emergency_services_contacted", "guaranteed_safety"]
+    },
+    "context_safety_no_v1": {
+      "route": "emotional_disclosure",
+      "severity": "low",
+      "response": "Thank you for telling me. I'm glad you answered the safety question. We can slow this down and focus on what would help in the next few minutes.",
+      "follow_up": "What feels most manageable to talk about right now?",
+      "recommended_actions": ["Consider letting someone you trust know you are having a hard time."],
+      "resource_actions": [{"type": "support_resources", "label": "Open support resources"}],
+      "prohibited_claims": ["guaranteed_safety", "diagnosis"]
+    },
+    "quoted_risk_clarification_v1": {
+      "route": "unclear_or_other",
+      "severity": "medium",
+      "response": "I want to be careful here. It sounds like you may be talking about something someone else said or something you read.",
+      "follow_up": "Is this about your own safety right now, or are you asking about someone else's words?",
+      "recommended_actions": ["If someone may be in immediate danger, contact local emergency services or a trusted person nearby."],
+      "resource_actions": [{"type": "support_resources", "label": "Open support resources"}],
+      "prohibited_claims": ["user_intent_assumption", "diagnosis"]
+    }
+  }
+}

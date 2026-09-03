@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import List
@@ -6,16 +7,12 @@ from app.database import get_db
 from app.models.database_models import User, DailyCheckIn, Assessment
 from app.routes.auth import get_current_user
 from app.utils.assessment_calculator import DailyCheckInCalculator, AssessmentAggregator
+from app.services.consent import require_active_consent
+from app.services.modalities import create_mood_prediction_for_checkin, trigger_fusion_for_prediction
 from pydantic import BaseModel
 from typing import Optional
 
 router = APIRouter(prefix="/api/checkin", tags=["Daily Check-In"])
-
-# Test endpoint to verify API is working
-@router.get("/test")
-async def test_endpoint():
-    """Test endpoint to verify checkin API is working"""
-    return {"status": "ok", "message": "Checkin API is working"}
 
 class DailyCheckInCreate(BaseModel):
     mood: int  # 1-5 scale
@@ -49,11 +46,9 @@ def create_daily_checkin(
     db: Session = Depends(get_db)
 ):
     """Create today's daily check-in"""
+    require_active_consent(db, current_user, "mood_processing", "submitting daily check-ins")
     
     try:
-        print(f"📋 Creating daily checkin for user {current_user.id}")
-        print(f"📊 Mood: {checkin_data.mood}, Stress: {checkin_data.stress_level}")
-        
         # Validate inputs
         if not (1 <= checkin_data.mood <= 5):
             raise HTTPException(
@@ -78,10 +73,10 @@ def create_daily_checkin(
         )
         
         db.add(db_checkin)
-        db.commit()
+        db.flush()
+        prediction = create_mood_prediction_for_checkin(db, db_checkin)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="daily_checkin_submission", actor=current_user)
         db.refresh(db_checkin)
-        
-        print(f"✅ Daily checkin created: {db_checkin.id}")
         
         return {
             "id": db_checkin.id,
@@ -93,14 +88,11 @@ def create_daily_checkin(
         
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"❌ Checkin error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save check-in: {str(e)}"
+            detail="Failed to save check-in"
         )
     
     db.commit()
@@ -125,6 +117,7 @@ def update_today_checkin(
     db: Session = Depends(get_db)
 ):
     """Update today's check-in (only if it's the same day)"""
+    require_active_consent(db, current_user, "mood_processing", "updating daily check-ins")
     
     try:
         today = datetime.utcnow().date()
@@ -132,7 +125,7 @@ def update_today_checkin(
         # Find today's checkin
         checkin = db.query(DailyCheckIn).filter(
             (DailyCheckIn.user_id == current_user.id) &
-            (db.func.date(DailyCheckIn.created_at) == today)
+            (func.date(DailyCheckIn.created_at) == today)
         ).first()
         
         if not checkin:
@@ -154,10 +147,10 @@ def update_today_checkin(
         checkin.self_harm_thoughts = checkin_data.self_harm_thoughts
         checkin.notes = checkin_data.notes or ""
         
-        db.commit()
+        db.flush()
+        prediction = create_mood_prediction_for_checkin(db, checkin)
+        trigger_fusion_for_prediction(db, prediction, trigger_source="daily_checkin_update", actor=current_user)
         db.refresh(checkin)
-        
-        print(f"✅ Daily checkin updated: {checkin.id}")
         
         return {
             "id": checkin.id,
@@ -179,14 +172,11 @@ def update_today_checkin(
         
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"❌ Update error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    except Exception:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update check-in: {str(e)}"
+            detail="Failed to update check-in"
         )
 
 @router.get("/today")
@@ -199,7 +189,7 @@ def get_today_checkin(
     today = datetime.utcnow().date()
     checkin = db.query(DailyCheckIn).filter(
         (DailyCheckIn.user_id == current_user.id) &
-        (db.func.date(DailyCheckIn.created_at) == today)
+        (func.date(DailyCheckIn.created_at) == today)
     ).first()
     
     if not checkin:
